@@ -2,8 +2,6 @@
 
 import UIKit
 
-UIImage(contentsOfFile: path)
-
 var str = "Hello, playground"
 
 let a:(String,Int,Bool) = ("123",123,false)
