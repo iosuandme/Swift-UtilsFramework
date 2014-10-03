@@ -1,6 +1,5 @@
 //
 //  SQLite.swift
-//  SwiftFrameworkTesting
 //
 //  Created by 招利 李 on 14-6-27.
 //  Copyright (c) 2014年 慧趣工作室. All rights reserved.
@@ -11,73 +10,18 @@
 //  使用例子如下 : (OS X 开发也可以用)
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//    extension ViewController : SQLiteDelegate {
-//        func create(handle:COpaquePointer, sqlite:SQLite) {
-//            //创建电脑表
-//            sqlite.create(handle,
-//                tableName: "Computer",
-//                params:    [.SQL_Int    ("cid",  .SQL_PrimaryKeyAutoincrement),
-//                            .SQL_String ("brand",.SQL_NotNull),
-//                            .SQL_Int    ("cpu", .SQL_NotNull)])
-//            //创建处理器表
-//            sqlite.create(handle,
-//                tableName: "CPU",
-//                params:    [.SQL_Int    ("uid",  .SQL_PrimaryKeyAutoincrement),
-//                            .SQL_String ("firm",.SQL_NotNull)])
-//            //创建使用者表
-//            sqlite.create(handle,
-//                tableName: "Preson",
-//                params:    [.SQL_Int    ("pid",  .SQL_PrimaryKeyAutoincrement),
-//                            .SQL_String ("name",.SQL_NotNull),
-//                            .SQL_Int    ("computer",.SQL_Default)])
-//
-//            sqlite.insert(handle, tableName: "CPU", params:["firm":"AMD"])
-//            sqlite.insert(handle, tableName: "CPU", params:["firm":"Intel"])
-//
-//            sqlite.insert(handle, tableName: "Computer", params:["brand":"Apple", "cpu":2])
-//            sqlite.insert(handle, tableName: "Computer", params:["brand":"Hp", "cpu":1])
-//            sqlite.insert(handle, tableName: "Computer", params:["brand":"Dell", "cpu":2])
-//
-//            sqlite.insert(handle, tableName: "Preson", params:["name":"lzl", "computer":1])
-//            sqlite.insert(handle, tableName: "Preson", params:["name":"lc", "computer":1])
-//            sqlite.insert(handle, tableName: "Preson", params:["name":"jc", "computer":1])
-//            sqlite.insert(handle, tableName: "Preson", params:["name":"gd", "computer":2])
-//
-//            println("插入完成")
-//
-//        }
-//    }
-//
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//  在需要查询的时候代码如下
-//
-//  let sqlite = SQLite(path:"/Users/apple/Documents/test.sqlite",delegate:self)
-//
-//  let (handle,_) = sqlite.open()
-//  let count = sqlite.count(handle,tableName: "Preson", Where: "computer = 1")
-//  println("有苹果电脑的人数为\(count)")
-//
-//  //查询所有电脑品牌为 Apple的数据
-//  if let rs = sqlite.select(handle,params:nil, tables: ["p":"Preson","cp":"Computer","c":"CPU"], Where: "p.computer = cp.cid AND cp.cpu = c.uid AND p.computer = 1") {
-//      println("查询成功")
-//      while rs.next {
-//          let dict = rs.getDictionary()
-//          println("data:\(dict)")
-//      }
-//
-//  } else {
-//      println("查询失败")
-//  }
-//
 
+@asmname("sqlite3_exec")
+func sqlite3_execute(COpaquePointer,UnsafePointer<CChar>,CFunctionPointer<Void>,COpaquePointer,AutoreleasingUnsafeMutablePointer<UnsafePointer<CChar>>) -> CInt
 
-@asmname("sqlite3_exec") func sqlite3_execute(COpaquePointer,UnsafePointer<CChar>,CFunctionPointer<Void>,COpaquePointer,AutoreleasingUnsafeMutablePointer<UnsafePointer<CChar>>) -> CInt
-@asmname("sqlite3_bind_blob") func sqlite3_bind_data(COpaquePointer,CInt,UnsafePointer<()>,CInt,COpaquePointer) -> CInt
-@asmname("sqlite3_bind_text") func sqlite3_bind_string(COpaquePointer,CInt,UnsafePointer<CChar>,CInt,COpaquePointer) -> CInt
+@asmname("sqlite3_bind_blob")
+func sqlite3_bind_data(COpaquePointer,CInt,UnsafePointer<Void>,CInt,COpaquePointer) -> CInt
+
+@asmname("sqlite3_bind_text")
+func sqlite3_bind_string(COpaquePointer,CInt,UnsafePointer<CChar>,CInt,COpaquePointer) -> CInt
+
 //@asmname("sqlite3_column_table_name") func sqlite3_column_table_title(COpaquePointer,CInt) -> CString
-//sqlite3_column_table_name
+
 import Foundation
 
 // MARK: - protocols 接口
@@ -105,38 +49,15 @@ protocol SQLiteResultSet : SQLiteBaseSet {
 protocol SQLiteBindSet : SQLiteBaseSet {
     var bindCount:CInt { get }
     func bindClear() -> CInt
-    // 泛型绑定 自动递归拆包
+    // 泛型绑定 自动递归拆包可选值
     func bindValue<T>(columnValue:T?,index:Int) -> CInt
 }
 
-protocol SQLiteDataBase {
+protocol SQLiteDataBase: NSObjectProtocol {
     // 返回纯属性所代表 字段(column)的类型 和 参数
     class func tableColumnTypes() -> [(SQLite.ColumnName, SQLite.ColumnType, SQLite.ColumnState)]
 }
 
-// 代理
-protocol SQLiteDelegate {
-    // MARK: 当数据库为空时
-    func onCreate(handle:COpaquePointer, db:SQLite)      // <- 需要创建所有的表
-    
-    // MARK: 当数据库版本变化时
-    func onUpgrade(handle:COpaquePointer, db:SQLite, oldVersion:UInt, newVersion:UInt) -> Bool
-    
-}
-
-protocol SQLiteLogDelegate {
-    
-    // MARK: 输出 SQL 语句
-    func logSQL(sql:String)
-    
-    // MARK: 当执行 SQL 语句出错时输出错误 @result 如果为 true 则 使用断言 中断程序,一般 DEBUG 模式下使用
-    func logError(error:NSError)
-}
-
-// MARK: - SQLiteProtocol 索引
-protocol SQLiteCreateIndex {
-    func create(index indexName:String, on tableName:String, columns columnNames:String...) -> Error?
-}
 
 // MARK: - SQLiteProtocol 基本
 protocol SQLiteBase {
@@ -146,6 +67,35 @@ protocol SQLiteBase {
     func querySQL(SQL:String) -> SQLiteResultSet?
     //获取最后出错信息
     var lastError:Error { get }
+}
+
+// MARK: - SQLiteProtocol 版本
+protocol SQLiteVersion {
+    var version:Int { get }
+}
+
+// MARK: - SQLiteProtocol 索引
+protocol SQLiteCreateIndex {
+    func create(index indexName:String, on tableName:String, columns columnNames:String...) -> Error?
+}
+
+// MARK: - SQLiteProtocol 迁移
+protocol SQLiteSelectInto {
+    func select(columns:[String]?, into newTableName:String, from oldTableName:String, Where:String?) -> Error?
+}
+
+// MARK: - SQLiteProtocol 修改
+protocol SQLiteAlter {
+    // 修改数据表名
+    func alterTable(oldTableName:String, renameTo newTableName:String) -> Error?
+    // 修改数据表 列名
+    func alterTable(tableName:String, renameColumn oldColumnName:String, to newColumnName:String) -> Error?
+    // 修改数据表 列类型
+    func alterTable(tableName:String, modify columnName:String, _ columnType:SQLite.ColumnType) -> Error?
+    // 修改数据表 插入列
+    func alterTable(tableName:String, add columnName:String, _ columnType:SQLite.ColumnType) -> Error?
+    // 修改数据表 删除列
+    func alterTable(tableName:String, dropColumn columnName:String) -> Error?
 }
 
 // MARK: - SQLiteProtocol 事务
@@ -178,7 +128,9 @@ protocol SQLiteInsert {
     // 单条插入全部字段
     func insert(into tableName:String, values:Any...) -> Error?
     func insertOrReplace(into tableName:String, values:Any...) -> Error?
-    // 单条插入部分字段
+    
+    // 批量插入
+    func insertOrReplace<T : SQLiteDataBase>(into tableName:String, rows:[T]) -> Error?
     func insertOrReplace(into tableName:String, columns:[String], params:(Int) -> [String:Any]?) -> Error?
     //func insert(into tableName:String, params:[SQLite.ColumnValue]) -> Error?
 }
@@ -204,32 +156,33 @@ protocol SQLiteSelect {
 class SQLite {
     typealias ColumnName = String
     typealias TableName = String
+    
+    typealias OnUpgradeFunc = (db:SQLiteHandle, oldVersion:Int, newVersion:Int) -> Bool
 
     let version:UInt
     let path:String
-    //weak var delegate:protocol<NSObjectProtocol, SQLiteDelegate, SQLiteLogDelegate>!
-    var delegate:protocol<SQLiteDelegate, SQLiteLogDelegate>?
-    //weak var delegate:SQLitedelegate?
-    //var logDelegate:SQLiteLogDelegate?
+    
+    let onUpgrade:OnUpgradeFunc
     
     // 适合 OS X 和 iOS
-    required init(path:String, version: UInt = 1, delegate:protocol<SQLiteDelegate, SQLiteLogDelegate>! = nil) {
+    required init(path:String, onUpgrade:OnUpgradeFunc, version: UInt = 1) {
         self.path = path
-        self.delegate = delegate
+        self.onUpgrade = onUpgrade
         self.version = version
+        assert(version > 0, "version must more than zero")
         setVersion(version)
     }
     // 适合 iOS
-    convenience init(name:String, version: UInt = 1, delegate:protocol<SQLiteDelegate, SQLiteLogDelegate>! = nil) {
+    convenience init(name:String, onUpgrade:OnUpgradeFunc, version: UInt = 1) {
         let docDir = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0] as NSString
-        self.init(path:docDir.stringByAppendingPathComponent(name),version:version,delegate:delegate)
+        self.init(path:docDir.stringByAppendingPathComponent(name),onUpgrade:onUpgrade,version:version)
     }
     
     func open() -> (SQLiteHandle!,Error?) {
         var handle:COpaquePointer = nil
         let dbPath:NSString = path
         
-        //如果文件不存在并且代理不为空
+        //如果文件路径不存在则创建
         var isDir:ObjCBool = false
         if !NSFileManager.defaultManager().fileExistsAtPath(path, isDirectory: &isDir) || isDir {
             NSFileManager.defaultManager().createDirectoryAtPath(path, withIntermediateDirectories: true, attributes: nil, error: nil)
@@ -247,27 +200,20 @@ class SQLite {
         return (SQLite.Handle(handle: handle), nil)
     }
     
-    private func setVersion(newVersion: UInt) {
-        /*
+    private func setVersion(version: UInt) {
         // 打开数据库
-        let (handle,openError) = open()
+        let (sqlHandle,openError) = open()
+        assert(openError == nil, "无法打开数据库")
+        var handle = sqlHandle as SQLite.Handle
         
-        // 如果打开数据库失败则输出这个错误
-        if let error = openError {
-            delegate?.logError(error)
-        } else if let rs = query(handle, SQL: "PRAGMA user_version") {
-        // 否则判断版本是否变化,
-            let oldVersion = UInt(rs.firstValue())
-            if oldVersion != newVersion {
-                // 如果变化则调用更新函数来更新字段
-                if delegate?.onUpgrade(handle, db:self, oldVersion:oldVersion, newVersion:newVersion) == true {
-                    execute(handle, SQL: "PRAGMA user_version = \(newVersion)")
-                }
+        let newVersion = Int(version)
+        let oldVersion = handle.version
+        if oldVersion != newVersion {
+            // 如果变化则调用更新函数来更新字段
+            if onUpgrade(db: handle, oldVersion: oldVersion, newVersion: newVersion) {
+                handle.version = newVersion
             }
-            delegate?.onCreate(handle, db: self)
-            close(handle)
         }
-        */
     }
 
     deinit{
@@ -277,7 +223,7 @@ class SQLite {
 }
 
 // MARK: - 数据库操作句柄
-protocol SQLiteHandle : SQLiteBase, SQLiteCreate, SQLiteCreateIndex, SQLiteQueue, SQLiteUpdate, SQLiteDelete, SQLiteSelect, SQLiteInsert { }
+protocol SQLiteHandle : SQLiteBase, SQLiteCreate, SQLiteCreateIndex, SQLiteQueue, SQLiteUpdate, SQLiteDelete, SQLiteSelect, SQLiteInsert, SQLiteAlter, SQLiteVersion { }
 
 extension SQLite {
     class Handle {
@@ -291,6 +237,7 @@ extension SQLite {
             if _handle != nil {
                 sqlite3_close(_handle)
             }
+            println("sqliteHandle 已释放")
         }
         private var _lastSQL:NSString = ""
     }
@@ -299,13 +246,16 @@ extension SQLite {
 // MARK: - SQLiteHandle 基本执行
 extension SQLite.Handle : SQLiteHandle {
     //执行 SQL 语句
-    func executeSQL(SQL:String) -> Error? {
-        //delegate?.logSQL("SQL -> \(SQL)")
-        _lastSQL = SQL
+    private func execSQL(SQL:String) -> Error? {
         if SQLITE_OK != sqlite3_execute(_handle,_lastSQL.UTF8String,nil,nil,nil) {
             return lastError
         }
         return nil
+    }
+    
+    func executeSQL(SQL:String) -> Error? {
+        _lastSQL = SQL
+        return execSQL(SQL)
     }
     
     //执行 SQL 查询语句
@@ -325,6 +275,58 @@ extension SQLite.Handle : SQLiteHandle {
         let errorCode = sqlite3_errcode(_handle)
         let errorDescription = String.fromCString(sqlite3_errmsg(_handle))
         return Error(code: Int(errorCode), content: errorDescription ?? "", userInfo:_lastSQL)
+    }
+}
+
+// MARK: - SQLiteHandle 版本
+extension SQLite.Handle : SQLiteVersion {
+    var version:Int {
+        get {
+            if let rs = querySQL("PRAGMA user_version") {
+                return rs.firstValue()
+            }
+            return -1
+        }
+        set {
+            let error = executeSQL("PRAGMA user_version = \(newValue)")
+            assert(DEBUG == 0 || error == nil, "set version error:\(error!)")
+        }
+
+    }
+}
+
+// MARK: - SQLiteHandle 数据迁移
+extension SQLite.Handle : SQLiteSelectInto {
+    func select(columns:[String]?, into newTableName:String, from oldTableName:String, Where:String?) -> Error? {
+        var columnNames = columns?.componentsJoinedByString(", ") ?? "*"
+        if let condition = Where {
+            return executeSQL("SELECT \(columnNames) INTO \(newTableName) FROM \(oldTableName) WHERE \(condition)")
+        }
+        return executeSQL("SELECT \(columnNames) INTO \(newTableName) FROM \(oldTableName)")
+    }
+}
+
+// MARK: - SQLiteHandle 修改表
+extension SQLite.Handle : SQLiteAlter {
+    // 修改数据表名
+    func alterTable(oldTableName:String, renameTo newTableName:String) -> Error? {
+        return executeSQL("ALTER TABLE \(oldTableName) RENAME TO \(newTableName)")
+    }
+    // 修改数据表 列名
+    func alterTable(tableName:String, renameColumn oldColumnName:String, to newColumnName:String) -> Error? {
+        return executeSQL("ALTER TABLE \(tableName) RENAME COLUMN \(oldColumnName) TO \(newColumnName)")
+    }
+    // 修改数据表 列类型
+    func alterTable(tableName:String, modify columnName:String, _ columnType:SQLite.ColumnType) -> Error? {
+        return executeSQL("ALTER TABLE \(tableName) MODIFY \(columnName) \(columnType)")
+    }
+    // 修改数据表 插入列
+    func alterTable(tableName:String, add columnName:String, _ columnType:SQLite.ColumnType) -> Error? {
+        return executeSQL("ALTER TABLE \(tableName) ADD \(columnName) \(columnType)")
+    }
+    // 修改数据表 删除列
+    func alterTable(tableName:String, dropColumn columnName:String) -> Error? {
+        return executeSQL("ALTER TABLE \(tableName) DROP COLUMN \(columnName)")
     }
 }
 
@@ -383,7 +385,6 @@ extension SQLite.Handle : SQLiteCreateIndex {
             return Error(code: 0, content: "[\(tableName)]没有指定任何索引字段", userInfo: indexName)
         }
         let names = columnNames.componentsJoinedByString(", ")
-        //let names = NSArray(array: columnNames).componentsJoinedByString(", ")
         return executeSQL("CREATE INDEX \(indexName) ON \(tableName)(\(names))")
     }
 }
@@ -392,15 +393,15 @@ extension SQLite.Handle : SQLiteCreateIndex {
 extension SQLite.Handle : SQLiteQueue {
     // MARK: 开启事务 BEGIN TRANSACTION
     func beginTransaction() -> Error? {
-        return executeSQL("BEGIN TRANSACTION")
+        return execSQL("BEGIN TRANSACTION")
     }
     // MARK: 提交事务 COMMIT TRANSACTION
     func commitTransaction() -> Error? {
-        return executeSQL("COMMIT TRANSACTION")
+        return execSQL("COMMIT TRANSACTION")
     }
     // MARK: 回滚事务 ROLLBACK TRANSACTION
     func rollbackTransaction() -> Error? {
-        return executeSQL("ROLLBACK TRANSACTION")
+        return execSQL("ROLLBACK TRANSACTION")
     }
 }
 
@@ -439,13 +440,8 @@ extension SQLite.Handle : SQLiteDelete {
 extension SQLite.Handle : SQLiteSelect {
     // 查询数量
     func select(count columns:[String]?, from tableName:String, Where:String?) -> Int {
-        var fields = ""
-        if let array:NSArray = columns {
-            fields = array.componentsJoinedByString(", ")
-        } else {
-            fields = "*"
-        }
-        var sql = "SELECT count(\(fields)) FROM \(tableName)"
+        var columnNames = columns?.componentsJoinedByString(", ") ?? "*"
+        var sql = "SELECT count(\(columnNames)) FROM \(tableName)"
         if let end = Where {
             sql += " WHERE \(end)"
         }
@@ -461,28 +457,16 @@ extension SQLite.Handle : SQLiteSelect {
     
     // 普通查询
     func select(columns:[String]?, from tableName:String, Where:String?) -> SQLiteResultSet? {
-        var sql:String = "SELECT "
-        if let array:NSArray = columns {
-            sql += array.componentsJoinedByString(", ")
-        } else {
-            sql += "*"
+        var columnNames = columns?.componentsJoinedByString(", ") ?? "*"
+        if let condition = Where {
+            return querySQL("SELECT \(columnNames) FROM \(tableName) WHERE \(condition)")
         }
-        if let end:String = Where {
-            sql += " FROM \(tableName) WHERE \(end)"
-        } else {
-            sql += " FROM \(tableName)"
-        }
-        return querySQL(sql)
+        return querySQL("SELECT \(columnNames) FROM \(tableName)")
     }
     
     // 联合查询
     func select(columns:[String]?, from tables:[String:SQLite.TableName], Where:String?) -> SQLiteResultSet? {
-        var sql:String = "SELECT "
-        if let array:NSArray = columns {
-            sql += array.componentsJoinedByString(", ")
-        } else {
-            sql += "*"
-        }
+        var columnNames = columns?.componentsJoinedByString(", ") ?? "*"
         var paramString = ""
         for (key,value) in tables {
             if !paramString.isEmpty {
@@ -490,12 +474,10 @@ extension SQLite.Handle : SQLiteSelect {
             }
             paramString += "\(value) \(key)"
         }
-        if let condition:String = Where {
-            sql += " FROM \(paramString) WHERE \(condition)"
-        } else {
-            sql += " FROM \(paramString)"
+        if let condition = Where {
+            return querySQL("SELECT \(columnNames) FROM \(paramString) WHERE \(condition)")
         }
-        return querySQL(sql)
+        return querySQL("SELECT \(columnNames) FROM \(paramString)")
     }
 }
 
@@ -707,6 +689,7 @@ extension SQLite {
             if _stmt != nil {
                 sqlite3_finalize(_stmt)
             }
+            println("rowSet 已释放")
         }
         private let columns:[String]
     }
