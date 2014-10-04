@@ -8,185 +8,184 @@
 
 import Foundation
 
-
-class CPU :NSObject, SQLiteTableClass {
-    
-    var cpu_id:Int
-    var cpu_firm:String
-    
-    init(id:Int, firm:String) {
-        self.cpu_firm = firm
-        self.cpu_id = id
-    }
-    
-    class func tableColumnTypeWithProperty(propertyName: String) -> (SQLite.ColumnType, SQLite.ColumnState)? {
-        switch propertyName {
-        case "cpu_id":      return (.INTEGER,       .PrimaryKeyAutoincrement)
-        case "cpu_firm":    return (.VARCHAR(30),   .NotNull)
-        default :           return nil
-        }
-    }
-    
-}
-
-class Computer :NSObject, SQLiteTableClass {
-    
-    var computer_id:Int
-    var computer_brand:String
-    
-    var cpu_id:Int
-    
-    init(id:Int, brand:String, cpu:Int) {
-        self.computer_id = id
-        self.computer_brand = brand
-        self.cpu_id = cpu
-    }
-    class func tableColumnTypeWithProperty(propertyName: String) -> (SQLite.ColumnType, SQLite.ColumnState)? {
-        switch propertyName {
-        case "computer_id":     return (.INTEGER,       .PrimaryKeyAutoincrement)
-        case "computer_brand":  return (.VARCHAR(30),   .NotNull)
-        case "cpu_id":          return (.INTEGER,       .NotNull)
-        default :               return nil
-        }
-    }
-}
-
-class Person : NSObject, SQLiteTableClass {
-    
-    var person_id:Int
-    var person_name:String
-    
-    var computer_id:Int
-    
-    
-    init(id:Int, name:String, computer:Int) {
-        self.person_id = id
-        self.person_name = name
-        self.computer_id = computer
-    }
-    class func tableColumnTypeWithProperty(propertyName: String) -> (SQLite.ColumnType, SQLite.ColumnState)? {
-        switch propertyName {
-        case "person_id":   return (.INTEGER,       .PrimaryKeyAutoincrement)
-        case "person_name": return (.VARCHAR(30),   .NotNull)
-        case "computer_id": return (.INTEGER,       .NotNull)
-        default :           return nil
-        }
-    }
-}
-
-class SQLiteDelegateObject:NSObject, SQLiteDelegate, SQLiteLogDelegate {
-    func onCreate(handle:COpaquePointer, db:SQLite) {     //<-需要创建所有的表
-        /*
-        // 通过元组创建表
-        sqlite.create(handle, tableIfNotExists: "CPU", params: [
-        ("cpu_id", .INTxEGER, .PrimaryKeyAutoincrement),
-        ("cpu_firm", .VARCHAR(30), .Default)
-        ])
-        sqlite.create(handle, tableIfNotExists: "Computer", params: [
-        ("computer_id", .INTEGER, .PrimaryKeyAutoincrement),
-        ("computer_brand", .VARCHAR(30), .NotNull),
-        ("cpu_id", .INTEGER, .NotNull)
-        ])
-        sqlite.create(handle, tableIfNotExists: "Person", params: [
-        ("person_id", .INTEGER, .PrimaryKeyAutoincrement),
-        ("person_name", .VARCHAR(30), .NotNull),
-        ("computer_id", .INTEGER, .NotNull)
-        ])
-        */
-        println("onCreate")
-        
-        db.create(handle, tableIfNotExists: "CPU", withClass: CPU.self)
-        db.create(handle, tableIfNotExists: "Computer", withClass: Computer.self)
-        db.create(handle, tableIfNotExists: "Person", withClass: Person.self)
-        
-        // 创建索引
-        db.create(handle, index: "indexCPU", on: "CPU", columns: "cpu_id")
-        db.create(handle, index: "indexComputer", on: "Computer", columns: "computer_id")
-        
-        //插入cpu数据 方式1 参数组
-        db.insert(handle, into: "CPU", values: 1, "Intel")
-        db.insert(handle, into: "CPU", values: 2, "AMD")
-        
-        db.beginTransaction(handle)
-        //插入电脑数据 方式2 通过对象数组(批量)
-        db.insert(handle, into: "Computer", datas: [Computer(id: 1, brand: "IBM", cpu: 1)])
-        
-        //插入电脑数据 方式3 通过字典(单条)
-        db.insert(handle, tableName: "Computer", params: [
-            "cpu_id":2,"computer_brand":"HP"])
-        db.commitTransaction(handle)
-        
-        //插入电脑数据 方式4 通过枚举(单条)
-        db.insert(handle, tableName: "Computer", params: [
-            .SQL_Int("cpu_id", 1),
-            .SQL_String("computer_brand", "Apple")])
-        
-        //插入使用者数据 方式5 通过回掉闭包(批量)
-        let peoples:[(String,Int)] = [
-            ("李明",1),
-            ("张三",2),
-            ("王五",1),
-            ("马六",3)
+struct CPU: SQLiteDataBase {
+    static func tableColumnTypes() -> [(SQLColumnName, SQLColumnType, SQLColumnState)] {
+        return [
+            ("cpu_id",  .INTEGER,      .PrimaryKey),
+            ("cpu_firm",.VARCHAR(30),  .NotNull)
         ]
-        db.insert(handle, tableName: "Person", columnNames: ["person_name","computer_id"]) {
-            (index) -> [SQLite.ColumnValue]? in
-            if index < peoples.count {
-                let (name,id) = peoples[index]
-                let columns:[SQLite.ColumnValue] = [
-                    .SQL_String("person_name",name),
-                    .SQL_Int("computer_id",id)
+    }
+    
+    init(id:UInt, frim:String) {
+        cpu_id = id
+        cpu_firm = frim
+    }
+    
+    var cpu_id:UInt
+    var cpu_firm:String
+}
+
+class Computer : SQLiteDataBase {
+    class func tableColumnTypes() -> [(SQLColumnName, SQLColumnType, SQLColumnState)] {
+        return [
+            ("computer_id",     .INTEGER,      .PrimaryKeyAutoincrement),
+            ("computer_brand",  .VARCHAR(50),  .NotNull),
+            ("cpu_id",          .INTEGER,      .NotNull)
+        ]
+    }
+    
+    init(id:UInt, brand:String, cpu:UInt) {
+        computer_id = id
+        computer_brand = brand
+        cpu_id = cpu
+    }
+    
+    var computer_id:UInt
+    var computer_brand:String
+    var cpu_id:UInt
+}
+
+class Preson: SQLiteDataBase {
+    class func tableColumnTypes() -> [(SQLColumnName, SQLColumnType, SQLColumnState)] {
+        return [
+            ("preson_id",  .INTEGER,       .PrimaryKey),
+            ("preson_name",.VARCHAR(80),   .NotNull),
+            ("preson_age", .INTEGER,       .None),
+            ("computer_id",.INTEGER,       .NotNull)
+        ]
+    }
+    
+    init(id:Int, name:String, computer:Int, age:Int? = nil) {
+        preson_id = id
+        preson_name = name
+        preson_age = age
+        computer_id = computer
+    }
+    var preson_id:Int
+    var preson_name:String
+    var preson_age:Int?
+    var computer_id:Int
+}
+
+
+func main() {
+    //NSFileManager.defaultManager().removeItemAtPath("/Users/apple/Documents/test.sqlite", error: nil)
+    
+    let sqlite = SQLite(path: "/Users/apple/Documents/test.sqlite", version: 2) {
+        (db, oldVersion, newVersion) -> Bool in
+        println("oldVersion:\(oldVersion) newVersion:\(newVersion)")
+        switch (oldVersion,newVersion) {
+        case (0,1):
+            //db.createTableIfNotExists("cpu", withType: CPU.self)
+            // 创建表方式1
+            db.createTableIfNotExists("cpu", params: [
+                ("cpu_id",  .INTEGER,     .PrimaryKey),
+                ("cpu_firm",.VARCHAR(20), .None)
+            ])
+            // 创建表方式2
+            db.createTableIfNotExists("computer", withType: Computer.self)
+            db.createTableIfNotExists("preson", withType: Preson.self)
+            
+            // 插入数据方式1
+            db.insert(into: "cpu", values: 1,"Intel")
+            // 插入数据方式2
+            db.insertOrReplace(into: "cpu", values: 2,"AMD")
+            
+            // 插入数据方式3
+            let computers = [
+                Computer(id: 1, brand: "Apple", cpu: 1),
+                Computer(id: 2, brand: "IBM", cpu: 1),
+                Computer(id: 3, brand: "HP", cpu: 2),
+                Computer(id: 4, brand: "Lenovo", cpu: 2)
+            ]
+            db.insertOrReplace(into: "computer", columns: ["computer_brand","cpu_id"]) {
+                (index:Int) -> [String : Any]? in
+                if index >= computers.count {
+                    return nil
+                }
+                return [
+                    "computer_brand":computers[index].computer_brand,
+                    "cpu_id"        :computers[index].cpu_id
                 ]
-                return columns
-            } else {
-                return nil
             }
+            
+            
+            // 插入数据方式4
+            let presons = [
+                Preson(id: 1, name: "张三", computer: 2),
+                Preson(id: 2, name: "李四", computer: 1, age: 36),
+                Preson(id: 3, name: "王五", computer: 4, age: 48),
+                Preson(id: 4, name: "赵六", computer: 3, age: 24),
+                Preson(id: 5, name: "燕七", computer: 1)
+            ]
+            db.insertOrReplace(into: "preson", rows: presons)
+        case (0,2):
+            // 创建表方式1
+            db.createTableIfNotExists("cpu", params: [
+                ("cpu_id",  .INTEGER,     .PrimaryKey),
+                ("cpu_firm",.VARCHAR(20), .None),
+                ("cpu_imei",.VARCHAR(20), .None)
+                ])
+            // 创建表方式2
+            db.createTableIfNotExists("computer", withType: Computer.self)
+            db.createTableIfNotExists("preson", withType: Preson.self)
+            
+            // 插入数据方式1
+            db.insert(into: "cpu", values: 1,"Intel","123456")
+            // 插入数据方式2
+            db.insertOrReplace(into: "cpu", values: 2,"AMD","")
+            
+            // 插入数据方式3
+            let computers = [
+                Computer(id: 1, brand: "Apple", cpu: 1),
+                Computer(id: 2, brand: "IBM", cpu: 1),
+                Computer(id: 3, brand: "HP", cpu: 2),
+                Computer(id: 4, brand: "Lenovo", cpu: 2)
+            ]
+            db.insertOrReplace(into: "computer", columns: ["computer_brand","cpu_id"]) {
+                (index:Int) -> [String : Any]? in
+                if index >= computers.count {
+                    return nil
+                }
+                return [
+                    "computer_brand":computers[index].computer_brand,
+                    "cpu_id"        :computers[index].cpu_id
+                ]
+            }
+            
+            
+            // 插入数据方式4
+            let presons = [
+                Preson(id: 1, name: "张三", computer: 2),
+                Preson(id: 2, name: "李四", computer: 1, age: 36),
+                Preson(id: 3, name: "王五", computer: 4, age: 48),
+                Preson(id: 4, name: "赵六", computer: 3, age: 24),
+                Preson(id: 5, name: "燕七", computer: 1)
+            ]
+            db.insertOrReplace(into: "preson", rows: presons)
+        case (1,2):
+            db.alterTable("cpu", add: "cpu_imei", SQLColumnType.VARCHAR(20))
+        default:
+            return false
         }
-        
-        
-        
-    }
-    
-    func logError(error:NSError) {
-        println("error->\(error.localizedDescription)")
-    }
-    
-    func logSQL(log:String) {
-        println(log)
-    }
-    func onUpgrade(handle: COpaquePointer, db: SQLite, oldVersion: UInt, newVersion: UInt) -> Bool {
-        println("newVersion:\(newVersion) oldVersion:\(oldVersion)")
         return true
     }
-}
-
-let delegateObject = SQLiteDelegateObject()
-
-let db = SQLite(path:"/Users/apple/Documents/test.sqlite",version: 1,delegate:delegateObject)
-
-
-let (handle,_) = db.open()
-
-let count = db.count(handle, tableName: "Person", Where: nil)
-
-
-if let rs = db.select(handle, columns: nil, tables: ["p": "Person", "c": "Computer", "cpu": "CPU"], Where: "p.computer_id = c.computer_id AND c.cpu_id = cpu.cpu_id AND cpu.cpu_id = 1") {
     
-    print("程序员有 \(count) 人,其中电脑使用 Intel CPU 的有:")
+    let (db,openError) = sqlite.open()
     
-    while rs.next {
-        let name = rs.getString("person_name")
-        print(" \(name)")
-    }
-    println(" <");
-}
-db.close(handle)
-/*
-sqlite.execute(handle, SQL: "PRAGMA user_version = 1")
-
-if let rs = sqlite.query(handle, SQL: "PRAGMA user_version") {
-    while rs.next {
-        let dict = rs.getDictionary()
-        println("dict:\(dict)")
+    if let error = openError {
+        println("不能操作数据库:\(error)")
+    } else {        
+        let count = db.select(count: nil, from: "preson", Where: nil)
+        println("程序员共 \(count) 人")
+        if let rs = db.select(nil, from: ["p":"preson","c":"computer","u":"cpu"], Where: "p.computer_id = c.computer_id AND c.cpu_id = u.cpu_id AND u.cpu_id = 1") {
+            print("使用Intel CPU 的人有:")
+            while rs.next {
+                print(" " + rs.getString("preson_name"))
+            }
+            println(" <")
+        }
     }
 }
-*/
+
+main()

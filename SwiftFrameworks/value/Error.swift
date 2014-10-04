@@ -8,40 +8,20 @@
 
 import Foundation
 
-extension Array {
-    func indexOf(includeElement: (T) -> Bool) -> Int {
-        for i in 0..<count {
-            if includeElement(self[i]) {
-                return i
-            }
-        }
-        return NSNotFound
-    }
-    
-    func componentsJoinedByString(separator:String) -> String {
-        var result = ""
-        for item:T in self {
-            if !result.isEmpty {
-                result += separator
-            }
-            result += "\(item)"
-        }
-        return result
-    }
-}
-
 struct Error {
     let code:Int
     let content:String
     let file:String
+    let funcName:String
     let line:UInt
     let userInfo:Any?
     
-    init(code:Int, content:String, userInfo:Any? = nil, file:String = __FILE__, line:UInt = __LINE__) {
+    init(code:Int, content:String, userInfo:Any? = nil, file:String = __FILE__, funcName:String = __FUNCTION__, line:UInt = __LINE__) {
         self.code = code
         self.content = content
         self.file = file
         self.line = line
+        self.funcName = funcName
         self.userInfo = userInfo
     }
 }
