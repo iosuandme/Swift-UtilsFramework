@@ -37,7 +37,8 @@ protocol SQLiteResultSet : SQLiteBaseSet {
     func firstValue() -> Int
     func getDictionary() -> [String:Any]
     func getUInt(columnName:String) -> UInt
-    func getInt(columnName:String) -> Int64
+    func getInt64(columnName:String) -> Int64
+    func getInt(columnName:String) -> Int
     func getFloat(columnName:String) -> Float
     func getDouble(columnName:String) -> Double
     func getString(columnName:String) -> String!
@@ -62,7 +63,7 @@ protocol SQLiteDataBase {
 // MARK: - SQLiteProtocol 基本
 protocol SQLiteBase {
     // 执行 SQL 语句
-    func executeSQL(SQL:String) -> Error?
+    func executeSQL(SQL:String) -> Error
     // 执行 SQL 查询语句
     func querySQL(SQL:String) -> SQLiteResultSet?
     // 获取最后出错信息
@@ -78,68 +79,71 @@ protocol SQLiteVersion {
 
 // MARK: - SQLiteProtocol 索引
 protocol SQLiteCreateIndex {
-    func create(index indexName:String, on tableName:String, columns columnNames:String...) -> Error?
+    func create(index indexName:String, on tableName:String, columns columnNames:String...) -> Error
+    func createUnique(index indexName:String, on tableName:String, columns columnNames:String...) -> Error
 }
 
 // MARK: - SQLiteProtocol 迁移
-protocol SQLiteSelectInto {
-    func select(columns:[String]?, into newTableName:String, from oldTableName:String, Where:String?) -> Error?
+protocol SQLiteMove {
+    func select(columns:[String]?, into newTableName:String, from oldTableName:String, Where:String?) -> Error
+    func insert(into newTableName:String, select columns:[String:String]?, from oldTableName:String, Where:String?) -> Error
+    func insertOrReplace(into newTableName:String, select columns:[String:String]?, from oldTableName:String, Where:String?) -> Error
 }
 
 // MARK: - SQLiteProtocol 修改
 protocol SQLiteAlter {
     // 修改数据表名
-    func alterTable(oldTableName:String, renameTo newTableName:String) -> Error?
+    func alterTable(oldTableName:String, renameTo newTableName:String) -> Error
     // 修改数据表 列名
-    func alterTable(tableName:String, renameColumn oldColumnName:String, to newColumnName:String) -> Error?
+    func alterTable(tableName:String, renameColumn oldColumnName:String, to newColumnName:String) -> Error
     // 修改数据表 列类型
-    func alterTable(tableName:String, modify columnName:String, _ columnType:SQLColumnType) -> Error?
+    func alterTable(tableName:String, modify columnName:String, _ columnType:SQLColumnType) -> Error
     // 修改数据表 插入列
-    func alterTable(tableName:String, add columnName:String, _ columnType:SQLColumnType) -> Error?
+    func alterTable(tableName:String, add columnName:String, _ columnType:SQLColumnType) -> Error
     // 修改数据表 删除列
-    func alterTable(tableName:String, dropColumn columnName:String) -> Error?
+    func alterTable(tableName:String, dropColumn columnName:String) -> Error
 }
 
 // MARK: - SQLiteProtocol 事务
 protocol SQLiteQueue {
     // MARK: 开启事务 BEGIN TRANSACTION
-    func beginTransaction() -> Error?
+    func beginTransaction() -> Error
     // MARK: 提交事务 COMMIT TRANSACTION
-    func commitTransaction() -> Error?
+    func commitTransaction() -> Error
     // MARK: 回滚事务 ROLLBACK TRANSACTION
-    func rollbackTransaction() -> Error?
+    func rollbackTransaction() -> Error
 }
 
 // MARK: - SQLiteProtocol 创建
 protocol SQLiteCreate {
     // 通过一个
-    func createTableIfNotExists(tableName:String, params:[(SQLColumnName,SQLColumnType,SQLColumnState)]) -> Error?
+    func createTableIfNotExists(tableName:String, params:[(SQLColumnName,SQLColumnType,SQLColumnState)]) -> Error
     
     // 通过一个类来创建表 类必须实现 SQLiteDataBase 协议 (推荐)
-    func createTableIfNotExists<T : SQLiteDataBase>(tableName:String, withType:T.Type) -> Error?
+    func createTableIfNotExists<T : SQLiteDataBase>(tableName:String, withType:T.Type) -> Error
 }
 
 // MARK: - SQLiteProtocol 改变
 protocol SQLiteUpdate {
-    func update(tableName:String, set params:[String:Any], Where:String?) -> Error?
+    func update(tableName:String, set params:[String:Any], Where:String?) -> Error
 }
 
 // MARK: - SQLiteProtocol 增加
 protocol SQLiteInsert {
     
     // 单条插入全部字段
-    func insert(into tableName:String, values:Any...) -> Error?
-    func insertOrReplace(into tableName:String, values:Any...) -> Error?
+    func insert(into tableName:String, values:Any...) -> Error
+    func insertOrReplace(into tableName:String, values:Any...) -> Error
     
     // 批量插入
-    func insertOrReplace<T : SQLiteDataBase>(into tableName:String, rows:[T]) -> Error?
-    func insertOrReplace(into tableName:String, columns:[String], params:(Int) -> [String:Any]?) -> Error?
-    //func insert(into tableName:String, params:[SQLite.ColumnValue]) -> Error?
+    func insertOrReplace<T : SQLiteDataBase>(into tableName:String, rows:[T]) -> Error
+    func insertOrReplace(into tableName:String, _ columns:[String], values:(Int) -> [String:Any]?) -> Error
+    //func insert(into tableName:String, params:[SQLite.ColumnValue]) -> Error
 }
 
 // MARK: - SQLiteProtocol 删除
 protocol SQLiteDelete {
-    func delete(from tableName:String, Where:String?) -> Error?
+    func delete(from tableName:String, Where:String?) -> Error
 }
 
 // MARK: - SQLiteProtocol 查询
@@ -181,7 +185,7 @@ class SQLite {
         self.init(path:docDir.stringByAppendingPathComponent(name),version:version,onUpgrade:onUpgrade)
     }
     
-    func open() -> (SQLiteHandle!,Error?) {
+    func open() -> (SQLiteHandle!,Error) {
         var handle:COpaquePointer = nil
         let dbPath:NSString = path
         
@@ -198,16 +202,16 @@ class SQLite {
             let errorDescription = String.fromCString(sqlite3_errmsg(handle))
             sqlite3_close(handle)
             assert(DEBUG == 0, "打开数据库[\(path)]失败")
-            return (nil,Error(code: Int(errorCode), content: errorDescription ?? "", userInfo: path))
+            return (nil,.Error(code: Int(errorCode), content: errorDescription ?? "", userInfo: path))
             //(handle, NSError(domain: "打开数据库[\(path)]失败", code: Int(result), userInfo: ["path":path]))
         }
-        return (SQLite.Handle(handle: handle), nil)
+        return (SQLite.Handle(handle: handle), .OK)
     }
     
     private func setVersion(version: UInt) {
         // 打开数据库
-        let (sqlHandle,openError) = open()
-        assert(openError == nil, "无法打开数据库")
+        let (sqlHandle,error) = open()
+        assert(error == .OK, "无法打开数据库")
         var handle = sqlHandle as SQLite.Handle
         
         let newVersion = Int(version)
@@ -227,7 +231,7 @@ class SQLite {
 }
 
 // MARK: - 数据库操作句柄
-protocol SQLiteHandle : SQLiteBase, SQLiteCreate, SQLiteCreateIndex, SQLiteQueue, SQLiteUpdate, SQLiteDelete, SQLiteSelect, SQLiteInsert, SQLiteAlter, SQLiteVersion { }
+typealias SQLiteHandle = protocol<SQLiteBase, SQLiteCreate, SQLiteCreateIndex, SQLiteQueue, SQLiteUpdate, SQLiteDelete, SQLiteSelect, SQLiteInsert, SQLiteAlter, SQLiteVersion, SQLiteMove>
 
 extension SQLite {
     class Handle {
@@ -248,18 +252,18 @@ extension SQLite {
 }
 
 // MARK: - SQLiteHandle 基本执行
-extension SQLite.Handle : SQLiteHandle {
+extension SQLite.Handle : SQLiteBase {
     //执行 SQL 语句
-    private func execSQL(SQL:String) -> Error? {
+    private func execSQL(SQL:String) -> Error {
         let sql:NSString = SQL
         if SQLITE_OK != sqlite3_execute(_handle,sql.UTF8String,nil,nil,nil) {
             println(lastError)
             return lastError
         }
-        return nil
+        return .OK
     }
     
-    func executeSQL(SQL:String) -> Error? {
+    func executeSQL(SQL:String) -> Error {
         //println("SQL -> \(SQL)")
         _lastSQL = SQL
         return execSQL(SQL)
@@ -282,7 +286,10 @@ extension SQLite.Handle : SQLiteHandle {
     var lastError:Error {
         let errorCode = sqlite3_errcode(_handle)
         let errorDescription = String.fromCString(sqlite3_errmsg(_handle))
-        return Error(code: Int(errorCode), content: errorDescription ?? "", userInfo:_lastSQL)
+        if let description = errorDescription {
+            return .Error(code: Int(errorCode), content: description, userInfo: _lastSQL)
+        }
+        return .OK
     }
     
     var lastSQL:String { return _lastSQL }
@@ -299,43 +306,59 @@ extension SQLite.Handle : SQLiteVersion {
         }
         set {
             let error = execSQL("PRAGMA user_version = \(newValue)")
-            assert(DEBUG == 0 || error == nil, "set version error:\(error)")
+            assert(DEBUG == 0 || error == .OK, "set version error:\(error)")
         }
 
     }
 }
 
 // MARK: - SQLiteHandle 数据迁移
-extension SQLite.Handle : SQLiteSelectInto {
-    func select(columns:[String]?, into newTableName:String, from oldTableName:String, Where:String?) -> Error? {
+extension SQLite.Handle : SQLiteMove {
+    // newTableName 必须不存在,系统自动创建
+    func select(columns:[String]?, into newTableName:String, from oldTableName:String, Where:String?) -> Error {
         var columnNames = columns?.componentsJoinedByString(", ") ?? "*"
         if let condition = Where {
             return executeSQL("SELECT \(columnNames) INTO \(newTableName) FROM \(oldTableName) WHERE \(condition)")
         }
         return executeSQL("SELECT \(columnNames) INTO \(newTableName) FROM \(oldTableName)")
     }
+    
+    // oldTableName 必须已存在
+    func insertOrReplace(into newTableName:String, select columns:[String:String]?, from oldTableName:String, Where:String?) -> Error {
+        let columnNames:String = columns?.keys.array.componentsJoinedByString(", ") ?? "*"
+        let oldColumnNames:String = columns?.values.array.componentsJoinedByString(", ") ?? "*"
+        let condition:String = Where != nil ? "WHERE \(Where!)" : ""
+        return executeSQL("INSERT OR REPLACE INTO \(newTableName)(\(columnNames)) SELECT \(oldColumnNames) FROM \(oldTableName) \(condition)")
+    }
+    // oldTableName 必须已存在
+    func insert(into newTableName:String, select columns:[String:String]?, from oldTableName:String, Where:String?) -> Error {
+        let columnNames:String = columns?.keys.array.componentsJoinedByString(", ") ?? "*"
+        let oldColumnNames:String = columns?.values.array.componentsJoinedByString(", ") ?? "*"
+        let condition:String = Where != nil ? "WHERE \(Where!)" : ""
+        return executeSQL("INSERT INTO \(newTableName)(\(columnNames)) SELECT \(oldColumnNames) FROM \(oldTableName) \(condition)")
+    }
 }
 
 // MARK: - SQLiteHandle 修改表
 extension SQLite.Handle : SQLiteAlter {
     // 修改数据表名
-    func alterTable(oldTableName:String, renameTo newTableName:String) -> Error? {
+    func alterTable(oldTableName:String, renameTo newTableName:String) -> Error {
         return executeSQL("ALTER TABLE \(oldTableName) RENAME TO \(newTableName)")
     }
     // 修改数据表 列名
-    func alterTable(tableName:String, renameColumn oldColumnName:String, to newColumnName:String) -> Error? {
+    func alterTable(tableName:String, renameColumn oldColumnName:String, to newColumnName:String) -> Error {
         return executeSQL("ALTER TABLE \(tableName) RENAME COLUMN \(oldColumnName) TO \(newColumnName)")
     }
     // 修改数据表 列类型
-    func alterTable(tableName:String, modify columnName:String, _ columnType:SQLColumnType) -> Error? {
+    func alterTable(tableName:String, modify columnName:String, _ columnType:SQLColumnType) -> Error {
         return executeSQL("ALTER TABLE \(tableName) MODIFY \(columnName) \(columnType)")
     }
     // 修改数据表 插入列
-    func alterTable(tableName:String, add columnName:String, _ columnType:SQLColumnType) -> Error? {
+    func alterTable(tableName:String, add columnName:String, _ columnType:SQLColumnType) -> Error {
         return executeSQL("ALTER TABLE \(tableName) ADD \(columnName) \(columnType)")
     }
     // 修改数据表 删除列
-    func alterTable(tableName:String, dropColumn columnName:String) -> Error? {
+    func alterTable(tableName:String, dropColumn columnName:String) -> Error {
         return executeSQL("ALTER TABLE \(tableName) DROP COLUMN \(columnName)")
     }
 }
@@ -343,7 +366,7 @@ extension SQLite.Handle : SQLiteAlter {
 // MARK: - SQLiteHandle 创建表
 extension SQLite.Handle : SQLiteCreate {
     
-    func createTableIfNotExists(tableName:String, params:[(SQLColumnName,SQLColumnType,SQLColumnState)]) -> Error? {
+    func createTableIfNotExists(tableName:String, params:[(SQLColumnName,SQLColumnType,SQLColumnState)]) -> Error {
         var paramString = ""
         for (name,type,state) in params {
             if !paramString.isEmpty {
@@ -355,7 +378,7 @@ extension SQLite.Handle : SQLiteCreate {
         return executeSQL(sql)
     }
     
-    func createTableIfNotExists<T : SQLiteDataBase>(tableName:String, withType:T.Type) -> Error? {
+    func createTableIfNotExists<T : SQLiteDataBase>(tableName:String, withType:T.Type) -> Error {
         var paramString = ""
         
         let params = T.tableColumnTypes()
@@ -390,34 +413,41 @@ extension SQLite.Handle : SQLiteCreate {
 
 // MARK: - SQLiteHandle 创建索引
 extension SQLite.Handle : SQLiteCreateIndex {
-    func create(index indexName:String, on tableName:String, columns columnNames:String...) -> Error? {
+    func create(index indexName:String, on tableName:String, columns columnNames:String...) -> Error {
         if columnNames.count == 0 {
-            return Error(code: 0, content: "[\(tableName)]没有指定任何索引字段", userInfo: indexName)
+            return .Error(code: 0, content: "[\(tableName)]没有指定任何索引字段", userInfo: indexName)
         }
         let names = columnNames.componentsJoinedByString(", ")
         return executeSQL("CREATE INDEX \(indexName) ON \(tableName)(\(names))")
+    }
+    func createUnique(index indexName:String, on tableName:String, columns columnNames:String...) -> Error {
+        if columnNames.count == 0 {
+            return .Error(code: 0, content: "[\(tableName)]没有指定任何索引字段", userInfo: indexName)
+        }
+        let names = columnNames.componentsJoinedByString(", ")
+        return executeSQL("CREATE UNIQUE INDEX \(indexName) ON \(tableName)(\(names))")
     }
 }
 
 // MARK: - SQLiteHandle 事务
 extension SQLite.Handle : SQLiteQueue {
     // MARK: 开启事务 BEGIN TRANSACTION
-    func beginTransaction() -> Error? {
+    func beginTransaction() -> Error {
         return execSQL("BEGIN TRANSACTION")
     }
     // MARK: 提交事务 COMMIT TRANSACTION
-    func commitTransaction() -> Error? {
+    func commitTransaction() -> Error {
         return execSQL("COMMIT TRANSACTION")
     }
     // MARK: 回滚事务 ROLLBACK TRANSACTION
-    func rollbackTransaction() -> Error? {
+    func rollbackTransaction() -> Error {
         return execSQL("ROLLBACK TRANSACTION")
     }
 }
 
 // MARK: - SQLiteHandle 更新
 extension SQLite.Handle : SQLiteUpdate {
-    func update(tableName:String, set params:[String:Any], Where:String?) -> Error? {
+    func update(tableName:String, set params:[String:Any], Where:String?) -> Error {
         var paramString = ""
         for (key,value) in params {
             if !paramString.isEmpty {
@@ -438,7 +468,7 @@ extension SQLite.Handle : SQLiteUpdate {
 // MARK: - SQLiteHandle 删除
 extension SQLite.Handle : SQLiteDelete {
     // 删除
-    func delete(from tableName:String, Where:String?) -> Error? {
+    func delete(from tableName:String, Where:String?) -> Error {
         if let condition = Where {
             return executeSQL("DELETE FROM \(tableName) WHERE \(condition)")
         }
@@ -491,7 +521,7 @@ extension SQLite.Handle : SQLiteSelect {
 extension SQLite.Handle : SQLiteInsert {
     
     // 单条插入全部字段
-    private func insertValues(otherKeywords:String, into tableName:String, values:[Any]) -> Error? {
+    private func insertValues(otherKeywords:String, into tableName:String, values:[Any]) -> Error {
         var valueString = ""
         for value in values {
             if !valueString.isEmpty {
@@ -502,16 +532,16 @@ extension SQLite.Handle : SQLiteInsert {
         let sql = "INSERT\(otherKeywords) INTO \(tableName) VALUES(\(valueString))"
         return executeSQL(sql)
     }
-    func insert(into tableName:String, values:Any...) -> Error? {
+    func insert(into tableName:String, values:Any...) -> Error {
         return insertValues("", into: tableName, values: values)
     }
     
-    func insertOrReplace(into tableName:String, values:Any...) -> Error? {
+    func insertOrReplace(into tableName:String, values:Any...) -> Error {
         return insertValues(" OR REPLACE", into: tableName, values: values)
     }
 
     // 单条插入部分字段
-    func insertOrReplace(into tableName:String, params:[String:Any]) -> Error? {
+    func insertOrReplace(into tableName:String, params:[String:Any]) -> Error {
         var keyString = ""
         var valueString = ""
         for (key,value) in params {
@@ -541,7 +571,7 @@ extension SQLite.Handle : SQLiteInsert {
     }
 */
     
-    func insertOrReplace<T : SQLiteDataBase>(into tableName:String, rows:[T]) -> Error? {
+    func insertOrReplace<T : SQLiteDataBase>(into tableName:String, rows:[T]) -> Error {
         let params = T.tableColumnTypes()
         var columns:[String] = []
         assert(params.count > 0 || DEBUG == 0, "模板类型没有返回表结构参数")
@@ -563,7 +593,7 @@ extension SQLite.Handle : SQLiteInsert {
         //创建事务
         beginTransaction()
         
-        var error:Error? = nil
+        var error:Error = .OK
         var hasError = false
 
         let SQL = "INSERT OR REPLACE INTO \(tableName) (\(keyString)) values(\(valueString))"
@@ -611,7 +641,7 @@ extension SQLite.Handle : SQLiteInsert {
         return error
     }
     
-    func insertOrReplace(into tableName:String, columns:[String], params:(Int) -> [String:Any]?) -> Error? {
+    func insertOrReplace(into tableName:String, _ columns:[String], values:(Int) -> [String:Any]?) -> Error {
         var keyString = ""
         var valueString = ""
         
@@ -626,7 +656,7 @@ extension SQLite.Handle : SQLiteInsert {
         //创建事务
         beginTransaction()
         
-        var error:Error? = nil
+        var error:Error = .OK
         var hasError = false
         //获取插入句柄绑定
         let SQL = "INSERT OR REPLACE INTO \(tableName) (\(keyString)) values(\(valueString))"
@@ -634,12 +664,12 @@ extension SQLite.Handle : SQLiteInsert {
             //let length = rs.bindCount
             
             var i = 0
-            while let values = params(i++) {
+            while let params = values(i++) {
                 var flag:CInt = 0
                 for index in 1...columns.count {
                     let key = columns[index-1]
-                    flag = rs.bindValue(values[key], index: index)
-                    assert(flag == SQLITE_OK || DEBUG == 0, "绑定[\(key)]失败 value=\(values[key])")
+                    flag = rs.bindValue(params[key], index: index)
+                    assert(flag == SQLITE_OK || DEBUG == 0, "绑定[\(key)]失败 value=\(params[key])")
                     if flag != SQLITE_OK {
                         error = lastError 
                         //println("错误并跳过本组数据,因为给字段[\(key)]绑定值[\(values)]失败 ERROR \(error)")
@@ -648,7 +678,7 @@ extension SQLite.Handle : SQLiteInsert {
                 }
                 if flag == SQLITE_OK {
                     let result = rs.step
-                    assert(result == SQLITE_OK || result == SQLITE_DONE || DEBUG == 0, "严重错误并回滚操作,绑定失败\(values)")
+                    assert(result == SQLITE_OK || result == SQLITE_DONE || DEBUG == 0, "严重错误并回滚操作,绑定失败\(params)")
                     if result != SQLITE_OK && result != SQLITE_DONE {
                         hasError = true
                         error = lastError
@@ -835,9 +865,12 @@ extension SQLite.RowSet : SQLiteResultSet {
         return dict
     }
     func getUInt(columnName:String) -> UInt {
-        return UInt(getInt(columnName))
+        return UInt(getInt64(columnName))
     }
-    func getInt(columnName:String) -> Int64 {
+    func getInt(columnName:String) -> Int {
+        return Int(getInt64(columnName))
+    }
+    func getInt64(columnName:String) -> Int64 {
         let index = columns.indexOf { $0 == columnName }
         //CInt(columnNames.indexOfObject(columnName))
         if index == NSNotFound {

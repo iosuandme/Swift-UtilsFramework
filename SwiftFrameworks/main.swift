@@ -184,6 +184,7 @@ func main() {
                 print(" " + rs.getString("preson_name"))
             }
             println(" <")
+            println(db.lastSQL)
         }
     }
 }

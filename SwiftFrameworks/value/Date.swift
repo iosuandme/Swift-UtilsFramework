@@ -87,20 +87,22 @@ extension Date {
         timeInterval += Double(second)
     }
     mutating func addMonth(month m:Int) {
-        let (year, month, day) = getDay()
-        let (hour, minute, second) = getTime()
-        let era = year / 100
-        if let date = NSCalendar.currentCalendar().dateWithEra(era, year: year, month: month + m, day: day, hour: hour, minute: minute, second: second, nanosecond: 0) {
+        let date = NSDate(timeIntervalSince1970: timeInterval)
+        var comps = NSCalendar.currentCalendar().components(.CalendarUnitYear | .CalendarUnitMonth | .CalendarUnitDay | .CalendarUnitHour | .CalendarUnitMinute | .CalendarUnitSecond, fromDate: date)
+        comps.month += m
+        
+        if let date = NSCalendar.currentCalendar().dateFromComponents(comps) {
             timeInterval = date.timeIntervalSince1970
         } else {
             timeInterval += Double(m) * 30 * 24 * 3600
         }
     }
     mutating func addYear(year y:Int) {
-        let (year, month, day) = getDay()
-        let (hour, minute, second) = getTime()
-        let era = year / 100
-        if let date = NSCalendar.currentCalendar().dateWithEra(era, year: year + y, month: month, day: day, hour: hour, minute: minute, second: second, nanosecond: 0) {
+        let date = NSDate(timeIntervalSince1970: timeInterval)
+        var comps = NSCalendar.currentCalendar().components(.CalendarUnitYear | .CalendarUnitMonth | .CalendarUnitDay | .CalendarUnitHour | .CalendarUnitMinute | .CalendarUnitSecond, fromDate: date)
+        comps.year += y
+        
+        if let date = NSCalendar.currentCalendar().dateFromComponents(comps) {
             timeInterval = date.timeIntervalSince1970
         } else {
             timeInterval += Double(y) * 365 * 24 * 3600
@@ -144,18 +146,16 @@ extension Date {
     
     // for example : let (year, month, day) = date.getDay()
     func getDay() -> (year:Int, month:Int, day:Int) {
-        var year:Int = 0, month:Int = 0, day:Int = 0
         let date = NSDate(timeIntervalSince1970: timeInterval)
-        NSCalendar.currentCalendar().getEra(nil, year: &year, month: &month, day: &day, fromDate: date)
-        return (year, month, day)
+        let comps = NSCalendar.currentCalendar().components(.CalendarUnitYear | .CalendarUnitMonth | .CalendarUnitDay, fromDate: date)
+        return (comps.year, comps.month, comps.day)
     }
     
     // for example : let (hour, minute, second) = date.getTime()
     func getTime() -> (hour:Int, minute:Int, second:Int) {
-        var hour:Int = 0, minute:Int = 0, second:Int = 0
         let date = NSDate(timeIntervalSince1970: timeInterval)
-        NSCalendar.currentCalendar().getHour(&hour, minute: &minute, second: &second, nanosecond: nil, fromDate: date)
-        return (hour, minute, second)
+        let comps = NSCalendar.currentCalendar().components(.CalendarUnitHour | .CalendarUnitMinute | .CalendarUnitSecond, fromDate: date)
+        return (comps.hour, comps.minute, comps.second)
     }
 }
 
@@ -242,7 +242,7 @@ extension Date : DebugPrintable {
         return NSDate(timeIntervalSince1970: timeInterval).debugDescription
     }
 }
-
+/*
 // MARK: - 可以直接赋值整数
 extension Date : IntegerLiteralConvertible {
     typealias IntegerLiteralType = Int64
@@ -259,7 +259,7 @@ extension Date : FloatLiteralConvertible {
         return Date(value)
     }
 }
-
+*/
 /*
 // 竟然报错提示各种继承,这类要大改
 extension Date :StringLiteralConvertible {

@@ -8,6 +8,27 @@
 
 import Foundation
 
+func ==(lhs: Error, rhs: Error) -> Bool {
+    switch (lhs,rhs) {
+    case (.OK, .OK):
+        return true
+    case (.Warning(let lContent), .Warning(let rContent)):
+        return lContent == rContent
+    case (let .Error(lCode, lContent, _), let .Error(rCode, rContent, _)):
+        return lCode == rCode && lContent == rContent
+    default:
+        return false
+    }
+}
+
+
+enum Error {
+    case OK
+    case Warning(content:String)
+    case Error(code:Int, content:String, userInfo:Any?)
+}
+
+/*
 struct Error {
     let code:Int
     let content:String
@@ -25,15 +46,32 @@ struct Error {
         self.userInfo = userInfo
     }
 }
+*/
+
+extension Error : Equatable { }
 
 extension Error : Printable {
     var description: String {
-        return "[error:\(code)] \(content)"
+        switch self {
+        case .OK:
+            return "OK"
+        case let .Warning (content):
+            return "Warning:\(content)"
+        case let .Error (code, content, userInfo):
+            return "Error:\(code) -> \(content)"
+        }
     }
 }
 
 extension Error : DebugPrintable {
     var debugDescription: String {
-        return "[error:\(code)] \(content)\nat file:\(file) line:\(line)\nuserInfo:\(userInfo)"
+        switch self {
+        case .OK:
+            return "OK"
+        case let .Warning (content):
+            return "Warning:\(content)"
+        case let .Error (code, content, userInfo):
+            return "Error:\(code) -> \(content) [userInfo:\(userInfo)]"
+        }
     }
 }
