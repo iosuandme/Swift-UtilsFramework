@@ -24,7 +24,7 @@ extension Int : Hexabled {
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(seq: reverse(buffer))
+        return String(reverse(buffer))
     }
 }
 
@@ -41,7 +41,7 @@ extension UInt : Hexabled {
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(seq: reverse(buffer))
+        return String(reverse(buffer))
     }
 }
 
@@ -58,7 +58,7 @@ extension Int8 : Hexabled{
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(seq: reverse(buffer))
+        return String(reverse(buffer))
     }
 }
 
@@ -75,7 +75,7 @@ extension UInt8 : Hexabled{
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(seq: reverse(buffer))
+        return String(reverse(buffer))
     }
 }
 
@@ -92,7 +92,7 @@ extension Int16 : Hexabled{
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(seq: reverse(buffer))
+        return String(reverse(buffer))
     }
 }
 
@@ -109,7 +109,7 @@ extension UInt16 : Hexabled{
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(seq: reverse(buffer))
+        return String(reverse(buffer))
     }
 }
 
@@ -126,7 +126,7 @@ extension Int32 : Hexabled{
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(seq: reverse(buffer))
+        return String(reverse(buffer))
     }
 }
 
@@ -143,7 +143,7 @@ extension UInt32 : Hexabled{
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(seq: reverse(buffer))
+        return String(reverse(buffer))
     }
 }
 
@@ -160,7 +160,7 @@ extension Int64 : Hexabled{
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(seq: reverse(buffer))
+        return String(reverse(buffer))
     }
 }
 
@@ -177,6 +177,6 @@ extension UInt64 : Hexabled{
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(seq: reverse(buffer))
+        return String(reverse(buffer))
     }
 }

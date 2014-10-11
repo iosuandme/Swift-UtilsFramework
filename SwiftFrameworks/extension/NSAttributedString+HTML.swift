@@ -12,7 +12,7 @@ extension NSAttributedString {
     convenience init(HTML:String, defaultFontSize size:CGFloat, imageFactory:((imageURL:String) -> UIImage?)?) {
         let html:NSString = HTML
         let regular = NSRegularExpression(pattern: "<\\s*(/)?\\s*(\\w+)(.*?)(/)?\\s*>", options: NSRegularExpressionOptions.CaseInsensitive, error: nil)
-        let matches = regular.matchesInString(HTML, options: NSMatchingOptions(0), range: NSMakeRange(0, html.length))
+        let matches = regular!.matchesInString(HTML, options: NSMatchingOptions(0), range: NSMakeRange(0, html.length))
         var elements:[NSAttributedStringHTML.HTMLElement] = []
         var tagStack:[NSAttributedStringHTML.HTMLElement] = []
         var content:String = ""
@@ -218,7 +218,7 @@ class NSAttributedStringHTML {
             var result:[String:String] = [:]
             if let attrs:NSString = attributesString {
                 let regular = NSRegularExpression(pattern: "\\s+(\\w+?)\\s*=\\s*['\"]?([^'\"]*)['\"\\s]?", options: NSRegularExpressionOptions.CaseInsensitive, error: nil)
-                let matches = regular.matchesInString(attributesString, options: NSMatchingOptions(0), range: NSMakeRange(0, attrs.length))
+                let matches = regular!.matchesInString(attributesString, options: NSMatchingOptions(0), range: NSMakeRange(0, attrs.length))
                 for match :NSTextCheckingResult in matches as [NSTextCheckingResult] {
                     let key:String = attrs.substringWithRange(match.rangeAtIndex(1))
                     let value:String = attrs.substringWithRange(match.rangeAtIndex(2))
@@ -289,7 +289,7 @@ class NSAttributedStringHTML {
         var offset = 0
         let str:NSMutableString = NSMutableString(string: content)
         let regular = NSRegularExpression(pattern: "&([#A-Za-z0-9]+?);", options: NSRegularExpressionOptions.CaseInsensitive, error: nil)
-        let matches = regular.matchesInString(content, options: NSMatchingOptions(0), range: NSMakeRange(0, str.length))
+        let matches = regular!.matchesInString(content, options: NSMatchingOptions(0), range: NSMakeRange(0, str.length))
         //反序替换
         for i in reverse(0..<matches.count) {
             let match = matches[i] as NSTextCheckingResult

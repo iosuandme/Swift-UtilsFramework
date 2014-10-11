@@ -8,6 +8,32 @@
 
 import Foundation
 
+let length = 1_000_000_000
+
+func testWhile() {
+    let whileBeginTime = NSDate().timeIntervalSince1970// * 1000
+    var i = 0
+    while i++ < length { }
+    let whileOverTime = NSDate().timeIntervalSince1970// * 1000
+    let useTime = whileOverTime - whileBeginTime
+    println(useTime)
+}
+
+func testFor() {
+    let range = 0..<length
+    let whileBeginTime = NSDate().timeIntervalSince1970// * 1000
+    for var i:Int = 0; i < length; i++ { }
+    //for i in range {}
+    let whileOverTime = NSDate().timeIntervalSince1970// * 1000
+    let useTime = whileOverTime - whileBeginTime
+    println(useTime)
+}
+testFor()
+testWhile()
+
+
+/*
+
 struct CPU: SQLiteDataBase {
     static func tableColumnTypes() -> [(SQLColumnName, SQLColumnType, SQLColumnState)] {
         return [
@@ -98,7 +124,7 @@ func main() {
                 Computer(id: 3, brand: "HP", cpu: 2),
                 Computer(id: 4, brand: "Lenovo", cpu: 2)
             ]
-            db.insertOrReplace(into: "computer", columns: ["computer_brand","cpu_id"]) {
+            db.insertOrReplace(into: "computer", ["computer_brand","cpu_id"]) {
                 (index:Int) -> [String : Any]? in
                 if index >= computers.count {
                     return nil
@@ -142,7 +168,7 @@ func main() {
                 Computer(id: 3, brand: "HP", cpu: 2),
                 Computer(id: 4, brand: "Lenovo", cpu: 2)
             ]
-            db.insertOrReplace(into: "computer", columns: ["computer_brand","cpu_id"]) {
+            db.insertOrReplace(into: "computer", ["computer_brand","cpu_id"]) {
                 (index:Int) -> [String : Any]? in
                 if index >= computers.count {
                     return nil
@@ -171,9 +197,9 @@ func main() {
         return true
     }
     
-    let (db,openError) = sqlite.open()
+    let (db,error) = sqlite.open()
     
-    if let error = openError {
+    if error != .OK {
         println("不能操作数据库:\(error)")
     } else {        
         let count = db.select(count: nil, from: "preson", Where: nil)
@@ -190,3 +216,4 @@ func main() {
 }
 
 main()
+*/

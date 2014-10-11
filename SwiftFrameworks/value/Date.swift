@@ -197,7 +197,9 @@ extension Date {
             if let date = formatter.dateFromString(v) {
                 self.timeInterval = date.timeIntervalSince1970
             } else {
-                assert(DEBUG == 0, "日期字符串格式异常[\(v)] at line:\(__LINE__) at column:\(__COLUMN__)")//__FILE__,__FUNCTION__
+                #if DEBUG
+                assert("日期字符串格式异常[\(v)] at line:\(__LINE__) at column:\(__COLUMN__)")//__FILE__,__FUNCTION__
+                #endif
             }
         }
     }
@@ -208,7 +210,9 @@ extension Date {
         if let date = formatter.dateFromString(v) {
             self.timeInterval = date.timeIntervalSince1970
         } else {
-            assert(DEBUG == 0, "日期字符串格式异常[\(v)] at line:\(__LINE__) at column:\(__COLUMN__)") //__FILE__,__FUNCTION__
+            #if DEBUG
+            assert("日期字符串格式异常[\(v)] at line:\(__LINE__) at column:\(__COLUMN__)")//__FILE__,__FUNCTION__
+            #endif
         }
     }
 }

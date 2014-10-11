@@ -7,8 +7,18 @@
 import Foundation
 
 extension Array {
+    
+    func find(includeElement: (T) -> Bool) -> T? {
+        for item in self {
+            if includeElement(item) {
+                return item
+            }
+        }
+        return nil
+    }
+    
     func indexOf(includeElement: (T) -> Bool) -> Int {
-        for i in 0..<count {
+        for var i:Int = 0; i<count; i++ {
             if includeElement(self[i]) {
                 return i
             }

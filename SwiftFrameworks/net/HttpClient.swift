@@ -86,7 +86,7 @@ class HttpClient: NSObject {
     
     func downloadCachePathWithURL(url:NSURL) -> String {
         let name = url.description.componentsSeparatedByString(".").last!
-        assert(!name.isEmpty || DEBUG == 0, "找不到要下载的文件名[\(url)]")
+        //assert(!name.isEmpty || DEBUG == 0, "找不到要下载的文件名[\(url)]")
         let fileName = "\(name).download"
         return downloadCachePath.stringByAppendingPathComponent(fileName)
     }
@@ -114,7 +114,8 @@ class HttpClient: NSObject {
             receiveData = nil//NSMutableData(contentsOfFile: path) //data.mutableCopy() as? NSMutableData
             topbytes = 0
             if let onDownloadComplete = onDownloadOver {
-                onDownloadComplete(topbytes: UInt64(data.length), data: data, error: nil, finishPath: path)
+                let length = data?.length ?? 0
+                onDownloadComplete(topbytes: UInt64(length), data: data, error: nil, finishPath: path)
                 onDownloadOver = nil
             }
             return
@@ -243,8 +244,9 @@ extension HttpClient:NSURLConnectionDelegate {
         receiveData = NSMutableData()
         if let onDownloadComplete = onDownloadOver {
             let path = downloadCachePathWithURL(connection.currentRequest.URL)
-            let data = NSData(contentsOfFile: path + ".download")
-            receiveData!.appendData(data)
+            if let data = NSData(contentsOfFile: path + ".download") {
+                receiveData!.appendData(data)
+            }
             if let res = response as? NSHTTPURLResponse {
                 let length = res.allHeaderFields["Content-Length"] as NSString
                 topbytes = UInt64(length.longLongValue)
@@ -282,7 +284,7 @@ extension HttpClient:NSURLConnectionDelegate {
         self.connection = nil
         // 如果是Http访问
         if let complete = onHttpOver {
-            let html:String = NSString(data: receiveData!, encoding: NSUTF8StringEncoding)
+            let html:String = NSString(data: receiveData!, encoding: NSUTF8StringEncoding)!
             complete(html: html,error: nil)
             onHttpOver = nil
         }

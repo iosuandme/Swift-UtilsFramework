@@ -11,6 +11,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
+import Foundation
+
 @asmname("sqlite3_exec")
 func sqlite3_execute(COpaquePointer,UnsafePointer<CChar>,CFunctionPointer<Void>,COpaquePointer,AutoreleasingUnsafeMutablePointer<UnsafePointer<CChar>>) -> CInt
 
@@ -22,7 +24,6 @@ func sqlite3_bind_string(COpaquePointer,CInt,UnsafePointer<CChar>,CInt,COpaquePo
 
 //@asmname("sqlite3_column_table_name") func sqlite3_column_table_title(COpaquePointer,CInt) -> UnsafePointer<UInt8>
 
-import Foundation
 
 // MARK: - protocols 接口
 protocol SQLiteBaseSet {
@@ -201,7 +202,7 @@ class SQLite {
             let errorCode = sqlite3_errcode(handle)
             let errorDescription = String.fromCString(sqlite3_errmsg(handle))
             sqlite3_close(handle)
-            assert(DEBUG == 0, "打开数据库[\(path)]失败")
+            //assert(DEBUG == 0, "打开数据库[\(path)]失败")
             return (nil,.Error(code: Int(errorCode), content: errorDescription ?? "", userInfo: path))
             //(handle, NSError(domain: "打开数据库[\(path)]失败", code: Int(result), userInfo: ["path":path]))
         }
@@ -306,7 +307,9 @@ extension SQLite.Handle : SQLiteVersion {
         }
         set {
             let error = execSQL("PRAGMA user_version = \(newValue)")
-            assert(DEBUG == 0 || error == .OK, "set version error:\(error)")
+            #if DEBUG
+            assert(error == .OK, "set version error:\(error)")
+            #endif
         }
 
     }
@@ -382,7 +385,9 @@ extension SQLite.Handle : SQLiteCreate {
         var paramString = ""
         
         let params = T.tableColumnTypes()
-        assert(params.count > 0 || DEBUG == 0, "模板类型没有返回表结构参数")
+        #if DEBUG
+        assert(params.count > 0, "模板类型没有返回表结构参数")
+        #endif
         for (name, type, state) in params {
             if !paramString.isEmpty {
                 paramString += ", "
@@ -574,7 +579,9 @@ extension SQLite.Handle : SQLiteInsert {
     func insertOrReplace<T : SQLiteDataBase>(into tableName:String, rows:[T]) -> Error {
         let params = T.tableColumnTypes()
         var columns:[String] = []
-        assert(params.count > 0 || DEBUG == 0, "模板类型没有返回表结构参数")
+        #if DEBUG
+        assert(params.count > 0, "模板类型没有返回表结构参数")
+        #endif
         var keyString = ""
         var valueString = ""
         for (name, _, state) in params {
@@ -612,7 +619,9 @@ extension SQLite.Handle : SQLiteInsert {
                             break
                         }
                     }
-                    assert(flag == SQLITE_OK || DEBUG == 0, "绑定[\(key)]失败 value=\(row)")
+                    #if DEBUG
+                    assert(flag == SQLITE_OK, "绑定[\(key)]失败 value=\(row)")
+                    #endif
                     if flag != SQLITE_OK {
                         error = lastError //String.fromCString(sqlite3_errmsg(handle))
                         //println("错误并跳过本组数据,因为给字段[\(key)]绑定值[\(row)]失败 ERROR \(error)")
@@ -621,7 +630,11 @@ extension SQLite.Handle : SQLiteInsert {
                 }
                 if flag == SQLITE_OK {
                     let result = rs.step
-                    assert(result == SQLITE_OK || result == SQLITE_DONE || DEBUG == 0, "严重错误并回滚操作,绑定失败\(row)")
+                    
+                    #if DEBUG
+                    assert(result == SQLITE_OK || result == SQLITE_DONE, "严重错误并回滚操作,绑定失败\(row)")
+                    #endif
+
                     if result != SQLITE_OK && result != SQLITE_DONE {
                         hasError = true
                         error = lastError
@@ -669,7 +682,10 @@ extension SQLite.Handle : SQLiteInsert {
                 for index in 1...columns.count {
                     let key = columns[index-1]
                     flag = rs.bindValue(params[key], index: index)
-                    assert(flag == SQLITE_OK || DEBUG == 0, "绑定[\(key)]失败 value=\(params[key])")
+                    #if DEBUG
+                    assert(flag == SQLITE_OK, "绑定[\(key)]失败 value=\(params[key])")
+                    #endif
+
                     if flag != SQLITE_OK {
                         error = lastError 
                         //println("错误并跳过本组数据,因为给字段[\(key)]绑定值[\(values)]失败 ERROR \(error)")
@@ -678,7 +694,9 @@ extension SQLite.Handle : SQLiteInsert {
                 }
                 if flag == SQLITE_OK {
                     let result = rs.step
-                    assert(result == SQLITE_OK || result == SQLITE_DONE || DEBUG == 0, "严重错误并回滚操作,绑定失败\(params)")
+                    #if DEBUG
+                    assert(result == SQLITE_OK || result == SQLITE_DONE, "严重错误并回滚操作,绑定失败\(params)")
+                    #endif
                     if result != SQLITE_OK && result != SQLITE_DONE {
                         hasError = true
                         error = lastError

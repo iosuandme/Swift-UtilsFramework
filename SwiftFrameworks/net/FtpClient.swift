@@ -45,7 +45,7 @@ class FtpClient :NSObject, NSStreamDelegate {
             name = (dict["kCFFTPResourceName"] as? NSString) ?? ""
             
             let typeValue = dict["kCFFTPResourceType"] as? NSNumber
-            type = Type.fromRaw(typeValue?.integerValue ?? 0) ?? .Unknow
+            type = Type(rawValue: typeValue?.integerValue ?? 0) ?? .Unknow
             let sizeValue = dict["kCFFTPResourceSize"] as? NSNumber
             size = sizeValue?.unsignedLongLongValue ?? 0
             let modeValue = dict["kCFFTPResourceMode"] as? NSNumber
@@ -69,7 +69,7 @@ class FtpClient :NSObject, NSStreamDelegate {
             dict["kCFFTPResourceOwner"] = owner
             dict["kCFFTPResourceGroup"] = group
             dict["kCFFTPResourceName"] = name
-            dict["kCFFTPResourceType"] = NSNumber(integer: type.toRaw())
+            dict["kCFFTPResourceType"] = NSNumber(integer: type.rawValue)
             dict["kCFFTPResourceSize"] = NSNumber(unsignedLongLong: size)
             dict["kCFFTPResourceMode"] = NSNumber(unsignedLong: accessMode)
             dict["kCFFTPResourceLink"] = link?.description ?? ""
@@ -250,7 +250,7 @@ class FtpClient :NSObject, NSStreamDelegate {
         
         var newName:String? = nil
         
-        if let name = entry[kCFFTPResourceName] as? NSString {
+        if let name = entry["kCFFTPResourceName"] as? NSString {
             if let data = name.dataUsingEncoding(NSMacOSRomanStringEncoding) {
                 newName = NSString(data: data, encoding: NSUTF8StringEncoding)
             }
@@ -258,15 +258,15 @@ class FtpClient :NSObject, NSStreamDelegate {
         if let name = newName {
             dict["kCFFTPResourceName"] = name
         } else {
-            dict["kCFFTPResourceName"] = entry[kCFFTPResourceName]
+            dict["kCFFTPResourceName"] = entry["kCFFTPResourceName"]
         }
-        dict["kCFFTPResourceModDate"] = entry[kCFFTPResourceModDate]
-        dict["kCFFTPResourceOwner"] = entry[kCFFTPResourceOwner]
-        dict["kCFFTPResourceGroup"] = entry[kCFFTPResourceGroup]
-        dict["kCFFTPResourceMode"] = entry[kCFFTPResourceMode]
-        dict["kCFFTPResourceSize"] = entry[kCFFTPResourceSize]
-        dict["kCFFTPResourceType"] = entry[kCFFTPResourceType]
-        dict["kCFFTPResourceLink"] = entry[kCFFTPResourceLink]
+        dict["kCFFTPResourceModDate"] = entry["kCFFTPResourceModDate"]
+        dict["kCFFTPResourceOwner"] = entry["kCFFTPResourceOwner"]
+        dict["kCFFTPResourceGroup"] = entry["kCFFTPResourceGroup"]
+        dict["kCFFTPResourceMode"] = entry["kCFFTPResourceMode"]
+        dict["kCFFTPResourceSize"] = entry["kCFFTPResourceSize"]
+        dict["kCFFTPResourceType"] = entry["kCFFTPResourceType"]
+        dict["kCFFTPResourceLink"] = entry["kCFFTPResourceLink"]
         
         return dict
     }
