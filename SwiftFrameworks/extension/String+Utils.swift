@@ -109,6 +109,36 @@ extension String.UnicodeScalarView {
         return self[advance(self.startIndex, i)]
     }
 }
+
+func trimPrefix(text:String) -> String {
+    var start:Int = 0
+    for char:Character in text {
+        switch char {
+        case "\n", " ", "\r":
+            start++
+        default:
+            return text.substringFromIndex(start)
+        }
+    }
+    return ""
+}
+func trimSuffix(text:String) -> String {
+    var start:Int = 0
+    let chars = reverse(text)
+    for char:Character in chars {
+        switch char {
+        case "\n", " ", "\r":
+            start++
+        default:
+            return text.substringToIndex(chars.count - start)
+        }
+    }
+    return ""
+}
+func trim(text:String) -> String {
+    return trimSuffix(trimPrefix(text))
+}
+
 /*
 extension NSURL: StringLiteralConvertible {
     public class func convertFromExtendedGraphemeClusterLiteral(value: String) -> Self {

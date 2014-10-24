@@ -9,6 +9,46 @@ import Foundation
 protocol Hexabled {
     func toHex() -> String
     func strtoul(n:Self) -> String
+    func toChinese() -> String
+}
+
+func chineseInt(var code:Int64) -> String {
+    let units:[Character] = [" ","十","百","千","万","十","百","千","亿","十","百","千","万"]
+    let nums:[Character] = ["零","一","二","三","四","五","六","七","八","九"]
+    
+    var unit = 0
+    var buffer:[Character] = []
+    var deleteZero = false
+    do {
+        let i = Int(code % 10)
+        code = code / 10
+        unit++
+        if i > 0 {
+            if unit > 1 {
+                buffer.append(units[unit-1])
+            }
+            if i == 1 && code == 0 && unit % 4 == 2 {
+                println(unit)
+            } else {
+                buffer.append(nums[i])
+            }
+            deleteZero = false
+        } else {
+            if unit == 5 {
+                buffer.append("万")
+                deleteZero = true
+            }
+            if unit == 9 {
+                buffer.append("亿")
+                deleteZero = true
+            }
+            if buffer.last != "零" && buffer.count > 0 && !deleteZero {
+                buffer.append("零")
+            }
+        }
+    } while code > 0
+    
+    return String(reverse(buffer))
 }
 
 extension Int : Hexabled {
@@ -26,6 +66,7 @@ extension Int : Hexabled {
         } while num > 0
         return String(reverse(buffer))
     }
+    func toChinese() -> String { return chineseInt(Int64(self)) }
 }
 
 extension UInt : Hexabled {
@@ -43,6 +84,7 @@ extension UInt : Hexabled {
         } while num > 0
         return String(reverse(buffer))
     }
+    func toChinese() -> String { return chineseInt(Int64(self)) }
 }
 
 extension Int8 : Hexabled{
@@ -60,6 +102,7 @@ extension Int8 : Hexabled{
         } while num > 0
         return String(reverse(buffer))
     }
+    func toChinese() -> String { return chineseInt(Int64(self)) }
 }
 
 extension UInt8 : Hexabled{
@@ -77,6 +120,7 @@ extension UInt8 : Hexabled{
         } while num > 0
         return String(reverse(buffer))
     }
+    func toChinese() -> String { return chineseInt(Int64(self)) }
 }
 
 extension Int16 : Hexabled{
@@ -94,6 +138,7 @@ extension Int16 : Hexabled{
         } while num > 0
         return String(reverse(buffer))
     }
+    func toChinese() -> String { return chineseInt(Int64(self)) }
 }
 
 extension UInt16 : Hexabled{
@@ -111,6 +156,7 @@ extension UInt16 : Hexabled{
         } while num > 0
         return String(reverse(buffer))
     }
+    func toChinese() -> String { return chineseInt(Int64(self)) }
 }
 
 extension Int32 : Hexabled{
@@ -128,6 +174,7 @@ extension Int32 : Hexabled{
         } while num > 0
         return String(reverse(buffer))
     }
+    func toChinese() -> String { return chineseInt(Int64(self)) }
 }
 
 extension UInt32 : Hexabled{
@@ -145,6 +192,7 @@ extension UInt32 : Hexabled{
         } while num > 0
         return String(reverse(buffer))
     }
+    func toChinese() -> String { return chineseInt(Int64(self)) }
 }
 
 extension Int64 : Hexabled{
@@ -162,6 +210,7 @@ extension Int64 : Hexabled{
         } while num > 0
         return String(reverse(buffer))
     }
+    func toChinese() -> String { return chineseInt(Int64(self)) }
 }
 
 extension UInt64 : Hexabled{
@@ -179,4 +228,5 @@ extension UInt64 : Hexabled{
         } while num > 0
         return String(reverse(buffer))
     }
+    func toChinese() -> String { return chineseInt(Int64(self)) }
 }

@@ -8,21 +8,25 @@
 
 import Foundation
 
-let length = 1_000_000_000
+let length = 1_000_000
 
 func testWhile() {
+    let range = Array<Int>(count: length, repeatedValue: 0)
     let whileBeginTime = NSDate().timeIntervalSince1970// * 1000
     var i = 0
-    while i++ < length { }
+    while ++i < length { let num = range[i] }
     let whileOverTime = NSDate().timeIntervalSince1970// * 1000
     let useTime = whileOverTime - whileBeginTime
     println(useTime)
 }
 
 func testFor() {
+    let ranges = Array<Int>(count: length, repeatedValue: 0)
+
     let range = 0..<length
     let whileBeginTime = NSDate().timeIntervalSince1970// * 1000
-    for var i:Int = 0; i < length; i++ { }
+    //for var i:Int = 0; i < length; i++ { let num = ranges[i] }
+    for i in ranges {}
     //for i in range {}
     let whileOverTime = NSDate().timeIntervalSince1970// * 1000
     let useTime = whileOverTime - whileBeginTime
