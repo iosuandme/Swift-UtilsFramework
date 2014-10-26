@@ -458,11 +458,11 @@ extension SQLite.Handle : SQLiteUpdate {
             if !paramString.isEmpty {
                 paramString += " AND "
             }
-            paramString += "\"\(key)\" = \"\(value)\""
+            paramString += "\(key) = \"\(value)\""
         }
         if let condition = Where {
             if !condition.isEmpty {
-                paramString += "WHERE \(condition)"
+                paramString += " WHERE \(condition)"
             }
         }
         let sql = "UPDATE \(tableName) SET \(paramString)"
@@ -532,7 +532,15 @@ extension SQLite.Handle : SQLiteInsert {
             if !valueString.isEmpty {
                 valueString += ", "
             }
-            valueString += "\"\(value)\""
+            if value is String {
+                if (value as String) == "Null" {
+                    valueString += "Null"
+                } else {
+                    valueString += "\"\(value)\""
+                }
+            } else {
+                valueString += "\(value)"
+            }
         }
         let sql = "INSERT\(otherKeywords) INTO \(tableName) VALUES(\(valueString))"
         return executeSQL(sql)

@@ -22,7 +22,7 @@ func ==(lhs: Error, rhs: Error) -> Bool {
 }
 
 
-enum Error {
+enum Error : Equatable {
     case OK
     case Warning(content:String)
     case Error(code:Int, content:String, userInfo:Any?)
@@ -47,8 +47,6 @@ struct Error {
     }
 }
 */
-
-extension Error : Equatable { }
 
 extension Error : Printable {
     var description: String {

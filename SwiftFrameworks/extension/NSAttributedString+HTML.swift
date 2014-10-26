@@ -9,6 +9,16 @@
 import UIKit
 
 extension NSAttributedString {
+    
+    func boundingRectWithSize(size: CGSize, defaultFont:UIFont = UIFont.systemFontOfSize(16), lineBreakMode:NSLineBreakMode = .ByWordWrapping) -> CGSize {
+        var label:UILabel = UILabel()
+        label.lineBreakMode = lineBreakMode
+        label.font = defaultFont
+        label.numberOfLines = 0
+        label.attributedText = self
+        return label.sizeThatFits(size)
+    }
+    
     convenience init(HTML:String, defaultFontSize size:CGFloat, imageFactory:((imageURL:String) -> UIImage?)?) {
         let html:NSString = HTML
         let regular = NSRegularExpression(pattern: "<\\s*(/)?\\s*(\\w+)(.*?)(/)?\\s*>", options: NSRegularExpressionOptions.CaseInsensitive, error: nil)

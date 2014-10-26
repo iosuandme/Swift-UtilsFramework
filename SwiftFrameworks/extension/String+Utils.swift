@@ -20,10 +20,23 @@ extension String {
         let demangleName = _stdlib_demangleName(name)
         return demangleName.componentsSeparatedByString(".").last!
     }
+    // MARK: - 取大小
+    func boundingRectWithSize(size: CGSize, defaultFont:UIFont = UIFont.systemFontOfSize(16), lineBreakMode:NSLineBreakMode = .ByWordWrapping) -> CGSize {
+        var label:UILabel = UILabel()
+        label.lineBreakMode = lineBreakMode
+        label.font = defaultFont
+        label.numberOfLines = 0
+        label.text = self
+        return label.sizeThatFits(size)
+    }
     
     // MARK: - 取路径末尾文件名
     var stringByDeletingPathPrefix:String {
         return self.componentsSeparatedByString("/").last!
+    }
+    // MARK: - 长度
+    var length:Int {
+        return distance(startIndex, endIndex)
     }
     
     // MARK: - 字符串截取
