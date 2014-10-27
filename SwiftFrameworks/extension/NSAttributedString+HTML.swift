@@ -120,6 +120,11 @@ extension NSAttributedString {
                     attachment.image = image
                     attrString.replaceCharactersInRange(range, withAttributedString: NSAttributedString(attachment: attachment))
                     NSAttributedStringHTML.HTMLElement.changeElementOffset(1-range.length, withLoacaton: range.location + 1, inElements: &elements)
+
+                    if image.size.width > 40 || image.size.height > 40 {
+                        attrString.replaceCharactersInRange(NSMakeRange(range.location, 0), withString: "\n")
+                        NSAttributedStringHTML.HTMLElement.changeElementOffset(1, withLoacaton: range.location, inElements: &elements)
+                    }
                 } else {                                                    //如果取不到图片
                     if let str:NSString = alt {
                         attrString.replaceCharactersInRange(NSMakeRange(range.location, 0), withString: alt)
