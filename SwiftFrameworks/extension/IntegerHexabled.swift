@@ -28,7 +28,7 @@ func chineseInt(var code:Int64) -> String {
                 buffer.append(units[unit-1])
             }
             if i == 1 && code == 0 && unit % 4 == 2 {
-                println(unit)
+                //println(unit)
             } else {
                 buffer.append(nums[i])
             }
