@@ -20,6 +20,7 @@ extension String {
         let demangleName = _stdlib_demangleName(name)
         return demangleName.componentsSeparatedByString(".").last!
     }
+    
     // MARK: - 取大小
     func boundingRectWithSize(size: CGSize, defaultFont:UIFont = UIFont.systemFontOfSize(16), lineBreakMode:NSLineBreakMode = .ByWordWrapping) -> CGSize {
         var label:UILabel = UILabel()
