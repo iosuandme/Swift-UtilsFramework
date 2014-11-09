@@ -297,6 +297,7 @@ extension NSDate {
 }
 
 // MARK: - 可以直接赋值日期
+/*
 protocol DateLiteralConvertible {
     typealias DateLiteralType
     class func convertFromDateLiteral(value: DateLiteralType) -> Self
@@ -310,6 +311,7 @@ extension Date : DateLiteralConvertible {
         return Date(value.timeIntervalSince1970)
     }
 }
+*/
 /*
 extension NSDate : FloatLiteralConvertible {
     public class func convertFromFloatLiteral(value: FloatLiteralType) -> Self {
@@ -317,12 +319,13 @@ extension NSDate : FloatLiteralConvertible {
     }
 }
 */
+/*
 extension NSDate : DateLiteralConvertible {
     class func convertFromDateLiteral(value: Date) -> Self {
         return self(timeIntervalSince1970: value.timeInterval)
     }
 }
-
+*/
 // MARK: - 可反射
 extension Date : Reflectable {
     func getMirror() -> MirrorType {

@@ -163,7 +163,7 @@ class FtpClient :NSObject, NSStreamDelegate {
             //println("已接收数据:\(_listData?.length)")
             let length = 32768
             var buffer: UnsafeMutablePointer<UInt8> = UnsafeMutablePointer<UInt8>.alloc(length)
-            let size = sizeofValue(buffer)
+            //let size = sizeofValue(buffer)
             //println("size\(buffer.)")
             if let inputStream = _inputStream {
                 let bytesRead = inputStream.read(buffer, maxLength: length)

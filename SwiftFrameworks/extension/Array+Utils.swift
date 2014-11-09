@@ -36,4 +36,12 @@ extension Array {
         }
         return result
     }
+    
+    func valuesFor<U>(includeElement: (T) -> U) -> [U] {
+        var result:[U] = []
+        for item:T in self {
+            result.append(includeElement(item))
+        }
+        return result
+    }
 }

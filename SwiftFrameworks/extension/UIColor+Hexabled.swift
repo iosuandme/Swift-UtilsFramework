@@ -32,7 +32,7 @@ extension UIColor {
         }
         self.init()
     }
-    convenience init(number:Int32) {
+    convenience init(number:UInt32) {
         let b = (number >> 0) & 0xFF
         let g = (number >> 8) & 0xFF
         let r = (number >> 16) & 0xFF
@@ -62,7 +62,7 @@ extension NSColor {
         self.init()
     }
     
-    convenience init(number:Int32) {
+    convenience init(number:UInt32) {
         let b = (number >> 0) & 0xFF
         let g = (number >> 8) & 0xFF
         let r = (number >> 16) & 0xFF
