@@ -203,7 +203,7 @@ class KeychainItemWrapper: NSObject {
             assert(result == noErr, "Couldn't update the Keychain Item.")
         } else {
             let result = SecItemAdd(dictionaryToSecItemFormat(keychainItemData!), nil)
-            assert(result == noErr, "Couldn't add the Keychain Item.")
+            //assert(result == noErr, "Couldn't add the Keychain Item.")
         }
         attributesRef?.release()
     }

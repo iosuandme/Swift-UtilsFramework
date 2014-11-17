@@ -36,6 +36,9 @@ func +(lhs: NSTimeInterval, rhs: Date) -> Date {
 func -(lhs: NSTimeInterval, rhs: Date) -> Date {
     return Date(-lhs, sinceDate:rhs)
 }
+func -(lhs: Date, rhs: Date) -> NSTimeInterval {
+    return lhs.timeInterval - rhs.timeInterval
+}
 
 func +=(inout lhs: Date, rhs: NSTimeInterval) {
     return lhs = Date(rhs, sinceDate:lhs)
@@ -74,19 +77,19 @@ extension Date {
 
 // MARK: - 计算
 extension Date {
-    mutating func addDay(day:Int) {
+    mutating func add(#day:Int) {
         timeInterval += Double(day) * 24 * 3600
     }
-    mutating func addHour(hour:Int) {
+    mutating func add(#hour:Int) {
         timeInterval += Double(hour) * 3600
     }
-    mutating func addMinute(minute:Int) {
+    mutating func add(#minute:Int) {
         timeInterval += Double(minute) * 60
     }
-    mutating func addSecond(second:Int) {
+    mutating func add(#second:Int) {
         timeInterval += Double(second)
     }
-    mutating func addMonth(month m:Int) {
+    mutating func add(month m:Int) {
         let date = NSDate(timeIntervalSince1970: timeInterval)
         var comps = NSCalendar.currentCalendar().components(.CalendarUnitYear | .CalendarUnitMonth | .CalendarUnitDay | .CalendarUnitHour | .CalendarUnitMinute | .CalendarUnitSecond, fromDate: date)
         comps.month += m
@@ -97,7 +100,7 @@ extension Date {
             timeInterval += Double(m) * 30 * 24 * 3600
         }
     }
-    mutating func addYear(year y:Int) {
+    mutating func add(year y:Int) {
         let date = NSDate(timeIntervalSince1970: timeInterval)
         var comps = NSCalendar.currentCalendar().components(.CalendarUnitYear | .CalendarUnitMonth | .CalendarUnitDay | .CalendarUnitHour | .CalendarUnitMinute | .CalendarUnitSecond, fromDate: date)
         comps.year += y
@@ -144,6 +147,16 @@ extension Date {
 // MARK: - 获取 日期 或 时间
 extension Date {
     
+    var weekday:Int {
+        let date = NSDate(timeIntervalSince1970: timeInterval)
+        return NSCalendar.currentCalendar().components(.CalendarUnitWeekday, fromDate: date).weekday
+    }
+    
+    func getDateComponents() -> NSDateComponents {
+        let date = NSDate(timeIntervalSince1970: timeInterval)
+        return NSCalendar.currentCalendar().components(.CalendarUnitYear | .CalendarUnitMonth | .CalendarUnitDay | .CalendarUnitHour | .CalendarUnitMinute | .CalendarUnitSecond | .CalendarUnitWeekday, fromDate: date)
+    }
+    
     // for example : let (year, month, day) = date.getDay()
     func getDay() -> (year:Int, month:Int, day:Int) {
         let date = NSDate(timeIntervalSince1970: timeInterval)
@@ -162,8 +175,14 @@ extension Date {
 // MARK: - 构造函数
 extension Date {
     init(year:Int, month:Int = 1, day:Int = 1, hour:Int = 0, minute:Int = 0, second:Int = 0) {
-        let era = year / 100
-        if let date = NSCalendar.currentCalendar().dateWithEra(era, year: year, month: month, day: day, hour: hour, minute: minute, second: second, nanosecond: 0) {
+        var comps = NSDateComponents()
+        comps.year = year
+        comps.month = month
+        comps.day = day
+        comps.hour = hour
+        comps.minute = minute
+        comps.second = second
+        if let date = NSCalendar.currentCalendar().dateFromComponents(comps) {
             timeInterval = date.timeIntervalSince1970
         }
     }

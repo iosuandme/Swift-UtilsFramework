@@ -22,11 +22,16 @@ extension UIViewController {
         return controller
     }
     
+    private struct NotificationInstance {
+        static weak var instance:UIViewController? = nil
+    }
+    
     func presentNotificationController(viewController:UIViewController) {
+        if NotificationInstance.instance != nil { return }
+        
+        NotificationInstance.instance = viewController
+        
         let topController = topViewController
-        if (topViewController.childViewControllers as NSArray).containsObject(viewController) {
-            return
-        }
         let target = topController.view
 
         // Calulate all frames
@@ -75,8 +80,9 @@ extension UIViewController {
     }
     
     func dismissNotificationController() {
-        let topController = topViewController
-        if let viewController = topController.childViewControllers.last as? UIViewController {
+        if let viewController = NotificationInstance.instance {
+        //if let viewController = topController.childViewControllers.last as? UIViewController {
+            let topController = topViewController
             let target = topController.view
             let overlay = target.subviews[target.subviews.count - 2] as UIView
             let imageView = overlay.subviews.first as? UIImageView
@@ -93,7 +99,7 @@ extension UIViewController {
                 viewController.view.removeFromSuperview()
                 viewController.removeFromParentViewController()
             }
-            
+            NotificationInstance.instance = nil
         }
         
     }

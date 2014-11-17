@@ -51,11 +51,16 @@ extension NSAttributedString {
                 } else if tag == NSAttributedStringHTML.HTMLElementType.BR.name {   //如果 是<br>
                     elements.append(element)                                //<--加入结果集
                 } else {
-                    tagStack.append(element)                                //<--加入栈
+                    switch element.type {
+                    case .Undefine:
+                        println("抛弃未识别标记\(html.substringWithRange(match.range))")
+                    default:
+                        tagStack.append(element)                                //<--加入栈
+                    }
                 }
             } else if tagStack.count > 0 {                                  //如果是TAG结束
                 var element = tagStack.removeLast()
-                if tag.uppercaseString == element.type.name {
+                if tag == element.type.name {
                     let loc = element.range.location
                     element.range = NSMakeRange(loc, lastLength - loc)
                     elements.append(element)
@@ -63,6 +68,10 @@ extension NSAttributedString {
                     tagStack.append(element)
                     println("抛弃不成对的标记\(html.substringWithRange(match.range))")
                 }
+            } else if tag == NSAttributedStringHTML.HTMLElementType.BR.name {
+                var element = NSAttributedStringHTML.HTMLElement(tag: tag, attributesString: nil)
+                element.range = NSMakeRange(lastLength, 0)
+                elements.append(element)
             } else {
                 println("抛弃不对称标记:\(html.substringWithRange(match.range))")
             }
