@@ -8,34 +8,50 @@
 
 import Foundation
 
-let length = 1_000_000
+let publicKey = "lksalfjadlksjfl99123" + "lksalfjadlksjfl99123" + "lksalfjadlksjfl99123"
 
-func testWhile() {
-    let range = Array<Int>(count: length, repeatedValue: 0)
-    let whileBeginTime = NSDate().timeIntervalSince1970// * 1000
-    var i = 0
-    while ++i < length { let num = range[i] }
-    let whileOverTime = NSDate().timeIntervalSince1970// * 1000
-    let useTime = whileOverTime - whileBeginTime
-    println(useTime)
+let privateKey = Encrypt.getRandomKey(16)
+
+let json = "{\"book\":\"Swift开发最高秘籍\"}"
+println(json)
+
+let encrypt = Encrypt(publicKey: publicKey, randomKeyLength: 31)
+let result = encrypt.encodeJSON(json, privateKey: privateKey)
+println(result)
+
+let data = result.encodeURL()
+let post = "{key:\(privateKey), data:\(data)}"
+
+
+let src = encrypt.decodeJSON(result, privateKey: privateKey)
+
+println(src)
+
+/*
+
+var char:Int32 = 0x778F9D & 0x7F
+let num:Int8 = Int8(char)
+println(num)
+
+func getRandomKey(length:Int) -> String {
+    var buffer = Array<UInt8>()
+    
+    for var i:Int = 0; i < length; i++ {
+        let char = UInt8(arc4random() % 95 + 32)
+        buffer.append(char)
+    }
+    let they2 = NSString(bytes: &buffer, length: length, encoding: NSUTF8StringEncoding)! as String
+    println(they2)
+    let data = NSData(bytes: &buffer, length: length)
+    return they2
 }
 
-func testFor() {
-    let ranges = Array<Int>(count: length, repeatedValue: 0)
 
-    let range = 0..<length
-    let whileBeginTime = NSDate().timeIntervalSince1970// * 1000
-    //for var i:Int = 0; i < length; i++ { let num = ranges[i] }
-    for i in ranges {}
-    //for i in range {}
-    let whileOverTime = NSDate().timeIntervalSince1970// * 1000
-    let useTime = whileOverTime - whileBeginTime
-    println(useTime)
-}
-testFor()
-testWhile()
+var randomKey = getRandomKey(32)
 
-
+println(randomKey.length)
+println(randomKey)
+*/
 /*
 
 struct CPU: SQLiteDataBase {

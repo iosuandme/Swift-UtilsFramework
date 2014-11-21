@@ -3,13 +3,37 @@
    version = "3.0">
    <TimelineItems>
       <LoggerValueHistoryTimelineItem
-         documentLocation = "#CharacterRangeLen=0&amp;CharacterRangeLoc=725&amp;EndingColumnNumber=15&amp;EndingLineNumber=33&amp;StartingColumnNumber=5&amp;StartingLineNumber=33&amp;Timestamp=433935726.334563">
+         documentLocation = "#CharacterRangeLen=0&amp;CharacterRangeLoc=3107&amp;EndingColumnNumber=15&amp;EndingLineNumber=123&amp;StartingColumnNumber=5&amp;StartingLineNumber=123&amp;Timestamp=438157318.082585">
       </LoggerValueHistoryTimelineItem>
       <LoggerValueHistoryTimelineItem
-         documentLocation = "#CharacterRangeLen=25&amp;CharacterRangeLoc=630&amp;EndingColumnNumber=39&amp;EndingLineNumber=27&amp;StartingColumnNumber=14&amp;StartingLineNumber=27&amp;Timestamp=433935726.334957">
+         documentLocation = "#CharacterRangeLen=25&amp;CharacterRangeLoc=3012&amp;EndingColumnNumber=39&amp;EndingLineNumber=117&amp;StartingColumnNumber=14&amp;StartingLineNumber=117&amp;Timestamp=438157318.082585">
       </LoggerValueHistoryTimelineItem>
       <LoggerValueHistoryTimelineItem
-         documentLocation = "#CharacterRangeLen=0&amp;CharacterRangeLoc=316&amp;EndingColumnNumber=23&amp;EndingLineNumber=16&amp;StartingColumnNumber=1&amp;StartingLineNumber=16&amp;Timestamp=433935726.335194">
+         documentLocation = "#CharacterRangeLen=0&amp;CharacterRangeLoc=2433&amp;EndingColumnNumber=23&amp;EndingLineNumber=106&amp;StartingColumnNumber=1&amp;StartingLineNumber=106&amp;Timestamp=438157318.082585">
+      </LoggerValueHistoryTimelineItem>
+      <LoggerValueHistoryTimelineItem
+         documentLocation = "#CharacterRangeLen=0&amp;CharacterRangeLoc=2431&amp;EndingColumnNumber=22&amp;EndingLineNumber=93&amp;StartingColumnNumber=9&amp;StartingLineNumber=93&amp;Timestamp=438157318.082585">
+      </LoggerValueHistoryTimelineItem>
+      <LoggerValueHistoryTimelineItem
+         documentLocation = "#CharacterRangeLen=0&amp;CharacterRangeLoc=2057&amp;EndingColumnNumber=22&amp;EndingLineNumber=79&amp;StartingColumnNumber=9&amp;StartingLineNumber=79&amp;Timestamp=438157318.082585">
+      </LoggerValueHistoryTimelineItem>
+      <LoggerValueHistoryTimelineItem
+         documentLocation = "#CharacterRangeLen=0&amp;CharacterRangeLoc=2057&amp;EndingColumnNumber=17&amp;EndingLineNumber=79&amp;StartingColumnNumber=13&amp;StartingLineNumber=79&amp;Timestamp=438157318.082585">
+      </LoggerValueHistoryTimelineItem>
+      <LoggerValueHistoryTimelineItem
+         documentLocation = "#CharacterRangeLen=0&amp;CharacterRangeLoc=1612&amp;EndingColumnNumber=28&amp;EndingLineNumber=69&amp;StartingColumnNumber=9&amp;StartingLineNumber=69&amp;Timestamp=438157318.082585">
+      </LoggerValueHistoryTimelineItem>
+      <LoggerValueHistoryTimelineItem
+         documentLocation = "file:///Users/bujiandi/%E7%BC%96%E7%A8%8B/SwiftFramework/Swift-UtilsFramework/iOS.playground#CharacterRangeLen=0&amp;CharacterRangeLoc=1612&amp;EndingLineNumber=68&amp;StartingLineNumber=68&amp;Timestamp=438157318.082585">
+      </LoggerValueHistoryTimelineItem>
+      <LoggerValueHistoryTimelineItem
+         documentLocation = "#CharacterRangeLen=0&amp;CharacterRangeLoc=1612&amp;EndingColumnNumber=22&amp;EndingLineNumber=68&amp;StartingColumnNumber=21&amp;StartingLineNumber=68&amp;Timestamp=438157318.082585">
+      </LoggerValueHistoryTimelineItem>
+      <LoggerValueHistoryTimelineItem
+         documentLocation = "#CharacterRangeLen=0&amp;CharacterRangeLoc=690&amp;EndingColumnNumber=15&amp;EndingLineNumber=32&amp;StartingColumnNumber=5&amp;StartingLineNumber=32&amp;Timestamp=438157318.082585">
+      </LoggerValueHistoryTimelineItem>
+      <LoggerValueHistoryTimelineItem
+         documentLocation = "#CharacterRangeLen=4&amp;CharacterRangeLoc=557&amp;EndingColumnNumber=17&amp;EndingLineNumber=25&amp;StartingColumnNumber=13&amp;StartingLineNumber=25&amp;Timestamp=438157318.082585">
       </LoggerValueHistoryTimelineItem>
    </TimelineItems>
 </Timeline>

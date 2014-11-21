@@ -22,6 +22,7 @@ extension String {
     }
     
     // MARK: - 取大小
+    #if os(iOS)
     func boundingRectWithSize(size: CGSize, defaultFont:UIFont = UIFont.systemFontOfSize(16), lineBreakMode:NSLineBreakMode = .ByWordWrapping) -> CGSize {
         var label:UILabel = UILabel()
         label.lineBreakMode = lineBreakMode
@@ -30,6 +31,7 @@ extension String {
         label.text = self
         return label.sizeThatFits(size)
     }
+    #endif
     
     // MARK: - 取路径末尾文件名
     var stringByDeletingPathPrefix:String {
