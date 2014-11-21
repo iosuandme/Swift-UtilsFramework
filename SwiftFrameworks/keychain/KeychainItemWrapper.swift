@@ -75,9 +75,8 @@ class KeychainItemWrapper: NSObject {
         } else {
             let outDictionary = outDictionaryRef!.takeUnretainedValue() as NSMutableDictionary
             keychainItemData = secItemFormatToDictionary(outDictionary)
-            outDictionaryRef!.release()
         }
-        //if outDictionaryRef != nil { outDictionaryRef!.release() }
+        outDictionaryRef?.release()
     }
     
     func setObject(inObject:AnyObject?, forKey key:NSString) {
@@ -206,5 +205,6 @@ class KeychainItemWrapper: NSObject {
             let result = SecItemAdd(dictionaryToSecItemFormat(keychainItemData!), nil)
             //assert(result == noErr, "Couldn't add the Keychain Item.")
         }
+        attributesRef?.release()
     }
 }
