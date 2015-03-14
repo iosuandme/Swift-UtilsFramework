@@ -1,210 +1,186 @@
 //
-//  KeychainItemWrapper.swift
-//  ExamWinnerSwift
+//  KeychainWrapper.swift
+//  KeychainWrapper
 //
-//  Created by 李招利 on 14/11/11.
-//  Copyright (c) 2014年 Jintianyu Culture Communication Co., Ltd. All rights reserved.
-//
-//  import Security.framework
+//  Created by Jason Rendel on 9/23/14.
+//  Copyright (c) 2014 jasonrendel. All rights reserved.
 //
 
 import Foundation
-import Security
 
-class KeychainItemWrapper: NSObject {
-    
-    var keychainItemData:NSMutableDictionary? = nil
-    var genericPasswordQuery:NSMutableDictionary
-    
-    init(identifier:String, accessGroup:String?) {
-        
-        genericPasswordQuery = NSMutableDictionary()
-        
-        super.init()
+let SecMatchLimit: String! = kSecMatchLimit as String
+let SecReturnData: String! = kSecReturnData as String
+let SecValueData: String! = kSecValueData as String
+let SecAttrAccessible: String! = kSecAttrAccessible as String
+let SecClass: String! = kSecClass as String
+let SecAttrService: String! = kSecAttrService as String
+let SecAttrGeneric: String! = kSecAttrGeneric as String
+let SecAttrAccount: String! = kSecAttrAccount as String
 
-        genericPasswordQuery.setObject(kSecClassGenericPassword, forKey: kSecClass as NSString)
-        genericPasswordQuery.setObject(identifier, forKey: kSecAttrGeneric as NSString)
-        
-        if let group = accessGroup {
-            // TODO: 增加宏判断模拟器模式什么都不做
-            
-            #if TARGET_IPHONE_SIMULATOR
-                // Ignore the access group if running on the iPhone simulator.
-                //
-                // Apps that are built for the simulator aren't signed, so there's no keychain access group
-                // for the simulator to check. This means that all apps can see all keychain items when run
-                // on the simulator.
-                //
-                // If a SecItem contains an access group attribute, SecItemAdd and SecItemUpdate on the
-                // simulator will return -25243 (errSecNoAccessForItem).
-            #else
-                genericPasswordQuery.setObject(group, forKey: kSecAttrAccessGroup as NSString)
-            #endif
+public class KeychainWrapper {
+    private struct internalVars {
+        static var serviceName: String = ""
+    }
+    
+    // MARK: Public Properties
+    
+    /*!
+    @var serviceName
+    @abstract Used for the kSecAttrService property to uniquely identify this keychain accessor.
+    @discussion Service Name will default to the app's bundle identifier if it can
+    */
+    public class var serviceName: String {
+        get {
+        if internalVars.serviceName.isEmpty {
+        internalVars.serviceName = NSBundle.mainBundle().bundleIdentifier ?? "SwiftKeychainWrapper"
         }
-     
-        genericPasswordQuery.setObject(kSecMatchLimitOne, forKey: kSecMatchLimit as NSString)
-        genericPasswordQuery.setObject(kCFBooleanTrue, forKey: kSecReturnAttributes as NSString)
-
-        let tempQuery = NSDictionary(dictionary: genericPasswordQuery)
-        var outDictionaryRef:Unmanaged<AnyObject>?
-
-        if !(SecItemCopyMatching(tempQuery,&outDictionaryRef) == noErr) {
-            
-            //let outDictionary = outDictionaryRef!.takeUnretainedValue() as NSMutableDictionary
-//            outDictionaryRef!.release()
-            
-            resetKeychainItem()
-            
-            keychainItemData!.setObject(identifier, forKey: kSecAttrGeneric as NSString)
-            
-            if let group = accessGroup {
-                // TODO: 增加宏判断模拟器模式什么都不做
-                #if TARGET_IPHONE_SIMULATOR
-                    // Ignore the access group if running on the iPhone simulator.
-                    //
-                    // Apps that are built for the simulator aren't signed, so there's no keychain access group
-                    // for the simulator to check. This means that all apps can see all keychain items when run
-                    // on the simulator.
-                    //
-                    // If a SecItem contains an access group attribute, SecItemAdd and SecItemUpdate on the
-                    // simulator will return -25243 (errSecNoAccessForItem).
-                #else
-                    keychainItemData!.setObject(group, forKey: kSecAttrAccessGroup as NSString)
-                #endif
-            }
+        return internalVars.serviceName
+        }
+        set(newServiceName) {
+            internalVars.serviceName = newServiceName
+        }
+    }
+    
+    // MARK: Public Methods
+    public class func hasValueForKey(key: String) -> Bool {
+        var keychainData: NSData? = self.dataForKey(key)
+        if let data = keychainData {
+            return true
         } else {
-            let outDictionary = outDictionaryRef!.takeUnretainedValue() as NSMutableDictionary
-            keychainItemData = secItemFormatToDictionary(outDictionary)
-        }
-        outDictionaryRef?.release()
-    }
-    
-    func setObject(inObject:AnyObject?, forKey key:NSString) {
-        if inObject == nil { return }
-        if let currentObject = keychainItemData!.objectForKey(key) as? NSObject {
-            if !currentObject.isEqual(inObject) {
-                keychainItemData!.setObject(inObject!, forKey: key)
-                writeToKeychain()
-            }
+            return false
         }
     }
     
-    // TODO: 需要继续写
-    func objectForKey(key:AnyObject) -> AnyObject? {
-        return keychainItemData?.objectForKey(key)
-    }
-    
-    func resetKeychainItem() {
-        var junk:OSStatus = noErr
-        if keychainItemData == nil {
-            keychainItemData = NSMutableDictionary()
-        } else {
-            let tempDictionary = dictionaryToSecItemFormat(keychainItemData!)
-            junk = SecItemDelete(tempDictionary)
-            assert(junk == noErr || junk == errSecItemNotFound, "Problem deleting current dictionary.")
+    // MARK: Getting Values
+    public class func stringForKey(keyName: String) -> String? {
+        var keychainData: NSData? = self.dataForKey(keyName)
+        var stringValue: String?
+        if let data = keychainData {
+            stringValue = NSString(data: data, encoding: NSUTF8StringEncoding) as String?
         }
         
-        // Default attributes for keychain item.
-        keychainItemData!.setObject("", forKey: kSecAttrAccount as NSString)
-        keychainItemData!.setObject("", forKey: kSecAttrLabel as NSString)
-        keychainItemData!.setObject("", forKey: kSecAttrDescription as NSString)
-        // Default data for keychain item.
-        keychainItemData!.setObject("", forKey: kSecValueData as NSString)
+        return stringValue
+    }
+    
+    public class func objectForKey(keyName: String) -> NSCoding? {
+        let dataValue: NSData? = self.dataForKey(keyName)
+        
+        var objectValue: NSCoding?
+        
+        if let data = dataValue {
+            objectValue = NSKeyedUnarchiver.unarchiveObjectWithData(data) as NSCoding?
+        }
+        
+        return objectValue;
+    }
+    
+    public class func dataForKey(keyName: String) -> NSData? {
+        var keychainQueryDictionary = self.setupKeychainQueryDictionaryForKey(keyName)
+        
+        // Limit search results to one
+        keychainQueryDictionary[SecMatchLimit] = kSecMatchLimitOne
+        
+        // Specify we want NSData/CFData returned
+        keychainQueryDictionary[SecReturnData] = kCFBooleanTrue
+        
+        // Search
+        
+        //        var searchResultRef: Unmanaged<AnyObject>?
+        //        var keychainValue: NSData?
+        //
+        //        let status: OSStatus = SecItemCopyMatching(keychainQueryDictionary, &searchResultRef)
+        //
+        //        if status == noErr {
+        //            if let resultRef = searchResultRef {
+        //                keychainValue = resultRef.takeUnretainedValue() as? NSData
+        //                resultRef.autorelease()
+        //            }
+        //        }
+        //
+        //        return keychainValue;
+        // use the objective c wrapper for now as a work around to a known issue where data retrievale fails
+        // for Swift optimized builds.
 
+        return  KeychainObjcWrapper.dataForDictionary(keychainQueryDictionary)
     }
     
-    private func dictionaryToSecItemFormat(dictionaryToConvert:NSDictionary) -> NSMutableDictionary {
-        // The assumption is that this method will be called with a properly populated dictionary
-        // containing all the right key/value pairs for a SecItem.
-        
-        // Create a dictionary to return populated with the attributes and data.
-        
-        var returnDictionary = NSMutableDictionary(dictionary: dictionaryToConvert)
-        
-        // Add the Generic Password keychain item class attribute.
-        returnDictionary.setObject(kSecClassGenericPassword, forKey: kSecClass as NSString)
-        
-        // Convert the NSString to NSData to meet the requirements for the value type kSecValueData.
-        // This is where to store sensitive data that should be encrypted.
-        if let passwordString = dictionaryToConvert.objectForKey(kSecValueData) as? NSString {
-            returnDictionary.setObject(passwordString.dataUsingEncoding(NSUTF8StringEncoding)!, forKey: kSecValueData as NSString)
-        }
-        
-        return returnDictionary
-    }
-    
-    private func secItemFormatToDictionary(dictionaryToConvert:NSDictionary) -> NSMutableDictionary {
-        // The assumption is that this method will be called with a properly populated dictionary
-        // containing all the right key/value pairs for the UI element.
-        
-        // Create a dictionary to return populated with the attributes and data.
-        var returnDictionary = NSMutableDictionary(dictionary: dictionaryToConvert)
-        
-        // Add the proper search key and class attribute.
-        returnDictionary.setObject(kCFBooleanTrue, forKey: kSecReturnData as NSString)
-        returnDictionary.setObject(kSecClassGenericPassword, forKey: kSecClass as NSString)
-        
-        var passwordDataRef:Unmanaged<AnyObject>?
-        // Acquire the password data from the attributes.
-        if SecItemCopyMatching(returnDictionary,&passwordDataRef) == noErr {
-            let passwordData = passwordDataRef!.takeUnretainedValue() as NSData
-            
-            // Remove the search, class, and identifier key/value, we don't need them anymore.
-            returnDictionary.removeObjectForKey(kSecReturnData)
-            
-            // Add the password to the dictionary, converting from NSData to NSString.
-            if let password = NSString(bytes: passwordData.bytes, length: passwordData.length, encoding: NSUTF8StringEncoding) {
-                returnDictionary.setObject(password, forKey: kSecValueData as NSString)
-            }
-            
+    // MARK: Setting Values
+    public class func setString(value: String, forKey keyName: String) -> Bool {
+        if let data = value.dataUsingEncoding(NSUTF8StringEncoding) {
+            return self.setData(data, forKey: keyName)
         } else {
-            // Don't do anything if nothing is found.
-            assert(false, "Serious error, no matching item found in the keychain.\n")
+            return false
         }
-        passwordDataRef?.release()
-
-        return returnDictionary
     }
     
-    private func writeToKeychain() {
-        var attributesRef:Unmanaged<AnyObject>?
+    public class func setObject(value: NSCoding, forKey keyName: String) -> Bool {
+        let data = NSKeyedArchiver.archivedDataWithRootObject(value)
         
-        if SecItemCopyMatching(genericPasswordQuery, &attributesRef) == noErr {
-            let attributes = attributesRef!.takeUnretainedValue() as NSDictionary
-            attributesRef!.release()
-            attributesRef = nil
-            // First we need the attributes from the Keychain.
-            var updateItem = NSMutableDictionary(dictionary: attributes)
-            // Second we need to add the appropriate search key/values.
-            if let object: AnyObject = genericPasswordQuery.objectForKey(kSecClass) {
-                updateItem.setObject(object, forKey: kSecClass as NSString)
-            }
-            
-            var tempCheck = dictionaryToSecItemFormat(keychainItemData!)
-            tempCheck.removeObjectForKey(kSecClass)
-            
-            #if TARGET_IPHONE_SIMULATOR
-                // Remove the access group if running on the iPhone simulator.
-                //
-                // Apps that are built for the simulator aren't signed, so there's no keychain access group
-                // for the simulator to check. This means that all apps can see all keychain items when run
-                // on the simulator.
-                //
-                // If a SecItem contains an access group attribute, SecItemAdd and SecItemUpdate on the
-                // simulator will return -25243 (errSecNoAccessForItem).
-                //
-                // The access group attribute will be included in items returned by SecItemCopyMatching,
-                // which is why we need to remove it before updating the item.
-                tempCheck.removeObjectForKey(kSecAttrAccessGroup)
-            #endif
-            
-            // An implicit assumption is that you can only update a single item at a time.
-            let result = SecItemUpdate(updateItem, tempCheck)
-            assert(result == noErr, "Couldn't update the Keychain Item.")
+        return self.setData(data, forKey: keyName)
+    }
+    
+    public class func setData(value: NSData, forKey keyName: String) -> Bool {
+        var keychainQueryDictionary: NSMutableDictionary = self.setupKeychainQueryDictionaryForKey(keyName)
+        
+        keychainQueryDictionary[SecValueData] = value
+        
+        // Protect the keychain entry so it's only valid when the device is unlocked
+        keychainQueryDictionary[SecAttrAccessible] = kSecAttrAccessibleWhenUnlocked
+        
+        let status: OSStatus = SecItemAdd(keychainQueryDictionary, nil)
+        
+        if status == errSecSuccess {
+            return true
+        } else if status == errSecDuplicateItem {
+            return self.updateData(value, forKey: keyName)
         } else {
-            let result = SecItemAdd(dictionaryToSecItemFormat(keychainItemData!), nil)
-            //assert(result == noErr, "Couldn't add the Keychain Item.")
+            return false
         }
-        attributesRef?.release()
+    }
+    
+    // MARK: Removing Values
+    public class func removeObjectForKey(keyName: String) -> Bool {
+        let keychainQueryDictionary: NSMutableDictionary = self.setupKeychainQueryDictionaryForKey(keyName)
+        
+        // Delete
+        let status: OSStatus =  SecItemDelete(keychainQueryDictionary);
+        
+        if status == errSecSuccess {
+            return true
+        } else {
+            return false
+        }
+    }
+    
+    // MARK: Private Methods
+    private class func updateData(value: NSData, forKey keyName: String) -> Bool {
+        let keychainQueryDictionary: NSMutableDictionary = self.setupKeychainQueryDictionaryForKey(keyName)
+        let updateDictionary = [SecValueData:value]
+        
+        // Update
+        let status: OSStatus = SecItemUpdate(keychainQueryDictionary, updateDictionary)
+        
+        if status == errSecSuccess {
+            return true
+        } else {
+            return false
+        }
+    }
+    
+    private class func setupKeychainQueryDictionaryForKey(keyName: String) -> NSMutableDictionary {
+        // Setup dictionary to access keychain and specify we are using a generic password (rather than a certificate, internet password, etc)
+        var keychainQueryDictionary: NSMutableDictionary = [SecClass:kSecClassGenericPassword]
+        
+        // Uniquely identify this keychain accessor
+        keychainQueryDictionary[SecAttrService] = KeychainWrapper.serviceName
+        
+        // Uniquely identify the account who will be accessing the keychain
+        var encodedIdentifier: NSData? = keyName.dataUsingEncoding(NSUTF8StringEncoding)
+        
+        keychainQueryDictionary[SecAttrGeneric] = encodedIdentifier
+        
+        keychainQueryDictionary[SecAttrAccount] = encodedIdentifier
+        
+        return keychainQueryDictionary
     }
 }

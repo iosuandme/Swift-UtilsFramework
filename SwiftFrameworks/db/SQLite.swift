@@ -320,6 +320,8 @@ extension SQLite.Handle : SQLiteMove {
     // newTableName 必须不存在,系统自动创建
     func select(columns:[String]?, into newTableName:String, from oldTableName:String, Where:String?) -> Error {
         var columnNames = columns?.componentsJoinedByString(", ") ?? "*"
+        var sql:String?
+        
         if let condition = Where {
             return executeSQL("SELECT \(columnNames) INTO \(newTableName) FROM \(oldTableName) WHERE \(condition)")
         }
@@ -487,6 +489,7 @@ extension SQLite.Handle : SQLiteSelect {
     func select(count columns:[String]?, from tableName:String, Where:String?) -> Int {
         var columnNames = columns?.componentsJoinedByString(", ") ?? "*"
         var sql = "SELECT count(\(columnNames)) FROM \(tableName)"
+        
         if let end = Where {
             sql += " WHERE \(end)"
         }

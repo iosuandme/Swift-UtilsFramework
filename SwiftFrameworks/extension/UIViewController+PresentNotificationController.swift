@@ -55,10 +55,14 @@ extension UIViewController {
         // Dismiss button
         // Don't use UITapGestureRecognizer to avoid complex handling
         var dismissButton = UIButton(frame: dismissFrame)
+        let gesture = UIPanGestureRecognizer()
+        dismissButton.addGestureRecognizer(gesture)
+
         dismissButton.backgroundColor = UIColor.clearColor()
         dismissButton.frame = dismissFrame
         dismissButton.addTarget(self, action: Selector("dismissNotificationController"), forControlEvents: .TouchUpInside)
         overlay.addSubview(dismissButton)
+        
         
         // Begin overlay animation
 
@@ -84,6 +88,7 @@ extension UIViewController {
         //if let viewController = topController.childViewControllers.last as? UIViewController {
             let topController = topViewController
             let target = topController.view
+            println("target:\(target)")
             let overlay = target.subviews[target.subviews.count - 2] as UIView
             let imageView = overlay.subviews.first as? UIImageView
             
