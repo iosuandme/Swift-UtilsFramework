@@ -62,6 +62,21 @@ extension String {
     subscript(subRange:Range<Int>) -> String {
         return self[advance(self.startIndex, subRange.startIndex)..<advance(self.startIndex, subRange.endIndex)]
     }
+    // MARK: - 字符串查找
+    func indexOf(str:String) -> Int {
+        for var i:Int = 0; i<self.length - str.length; i++ {
+            if self[i] == str[0] {
+                var equal:Bool = true
+                for var j:Int = 1; j<str.length; j++ {
+                    equal &= self[i+j] == str[j]
+                }
+                if equal {  return i  }
+                
+            }
+        }
+        
+        return -1
+    }
     
     // MARK: - 字符串修改 RangeReplaceableCollectionType
     mutating func insert(newElement: Character, atIndex i: Int) {

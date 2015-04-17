@@ -45,6 +45,7 @@ protocol SQLiteResultSet : SQLiteBaseSet {
     func getString(columnName:String) -> String!
     func getData(columnName:String) -> NSData!
     func getDate(columnName:String) -> NSDate!
+    func getChar(columnName:String) -> UnicodeScalar!
 }
 
 // 绑定结果集
@@ -147,6 +148,12 @@ protocol SQLiteDelete {
     func delete(from tableName:String, Where:String?) -> Error
 }
 
+// MARK: - SQLiteProtocol 删除表
+protocol SQLiteDeleteTable {
+    func drop(tableName:String) -> Error
+    func drop(tableNames:[String]) -> Error
+}
+
 // MARK: - SQLiteProtocol 查询
 protocol SQLiteSelect {
     //查询数量
@@ -221,6 +228,8 @@ class SQLite {
             // 如果变化则调用更新函数来更新字段
             if onUpgrade(db: handle, oldVersion: oldVersion, newVersion: newVersion) {
                 handle.version = newVersion
+            } else {
+                println("版本没有更新")
             }
         }
     }
@@ -232,7 +241,7 @@ class SQLite {
 }
 
 // MARK: - 数据库操作句柄
-typealias SQLiteHandle = protocol<SQLiteBase, SQLiteCreate, SQLiteCreateIndex, SQLiteQueue, SQLiteUpdate, SQLiteDelete, SQLiteSelect, SQLiteInsert, SQLiteAlter, SQLiteVersion, SQLiteMove>
+typealias SQLiteHandle = protocol<SQLiteBase, SQLiteCreate, SQLiteCreateIndex, SQLiteQueue, SQLiteUpdate, SQLiteDelete, SQLiteDeleteTable, SQLiteSelect, SQLiteInsert, SQLiteAlter, SQLiteVersion, SQLiteMove>
 
 extension SQLite {
     class Handle {
@@ -482,6 +491,38 @@ extension SQLite.Handle : SQLiteDelete {
         return executeSQL("DELETE FROM \(tableName)")
     }
 }
+
+// MARK: - SQLiteHandle 删除表
+extension SQLite.Handle : SQLiteDeleteTable {
+    
+    func drop(tableName:String) -> Error {
+        return executeSQL("DROP TABLE \(tableName)")
+    }
+    
+    
+    func drop(tableNames:[String]) -> Error {
+        var isDroped:Bool = true
+        for tableName in tableNames {
+            if executeSQL("DROP TABLE \(tableName)") == .OK {
+                isDroped &= true
+            } else {
+                isDroped &= false
+            }
+        }
+        
+        if isDroped {
+            return .OK
+        } else {
+            let errorCode = sqlite3_errcode(_handle)
+            let errorDescription = String.fromCString(sqlite3_errmsg(_handle))
+
+            return .Error(code:Int(errorCode), content:errorDescription ?? "", userInfo:nil)
+        }
+        
+    }
+
+}
+
 
 // MARK: - SQLiteHandle 查询
 extension SQLite.Handle : SQLiteSelect {
@@ -925,6 +966,11 @@ extension SQLite.RowSet : SQLiteResultSet {
         let result = sqlite3_column_text(_stmt, CInt(index))
         return String.fromCString(UnsafePointer<CChar>(result))
     }
+    func getChar(columnName:String) -> UnicodeScalar! {
+        let result = getString(columnName)
+        return result?.unicodeScalars[0]
+    }
+
     func getData(columnName:String) -> NSData! {
         let index = columns.indexOf { $0 == columnName }
         if index == NSNotFound {
