@@ -58,7 +58,7 @@ protocol SQLiteBindSet : SQLiteBaseSet {
 
 protocol SQLiteDataBase {
     // 返回纯属性所代表 字段(column)的类型 和 参数
-    class func tableColumnTypes() -> [(SQLColumnName, SQLColumnType, SQLColumnState)]
+    static func tableColumnTypes() -> [(SQLColumnName, SQLColumnType, SQLColumnState)]
 }
 
 
@@ -189,7 +189,7 @@ class SQLite {
     }
     // 适合 iOS
     convenience init(name:String, version: UInt = 1, onUpgrade:OnUpgradeFunc) {
-        let docDir = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0] as NSString
+        let docDir = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0] as! NSString
         self.init(path:docDir.stringByAppendingPathComponent(name),version:version,onUpgrade:onUpgrade)
     }
     
@@ -220,7 +220,7 @@ class SQLite {
         // 打开数据库
         let (sqlHandle,error) = open()
         assert(error == .OK, "无法打开数据库")
-        var handle = sqlHandle as SQLite.Handle
+        var handle = sqlHandle as! SQLite.Handle
         
         let newVersion = Int(version)
         let oldVersion = handle.version
@@ -302,7 +302,7 @@ extension SQLite.Handle : SQLiteBase {
         return .OK
     }
     
-    var lastSQL:String { return _lastSQL }
+    var lastSQL:String { return _lastSQL as String }
 }
 
 // MARK: - SQLiteHandle 版本
@@ -504,9 +504,9 @@ extension SQLite.Handle : SQLiteDeleteTable {
         var isDroped:Bool = true
         for tableName in tableNames {
             if executeSQL("DROP TABLE \(tableName)") == .OK {
-                isDroped &= true
+                isDroped = isDroped && true
             } else {
-                isDroped &= false
+                isDroped = isDroped && false
             }
         }
         
@@ -577,7 +577,7 @@ extension SQLite.Handle : SQLiteInsert {
                 valueString += ", "
             }
             if value is String {
-                if (value as String) == "Null" {
+                if (value as! String) == "Null" {
                     valueString += "Null"
                 } else {
                     valueString += "\"\(value)\""
@@ -656,7 +656,7 @@ extension SQLite.Handle : SQLiteInsert {
         var hasError = false
 
         let SQL = "INSERT OR REPLACE INTO \(tableName) (\(keyString)) values(\(valueString))"
-        if let rs:SQLiteBindSet = querySQL(SQL) as SQLite.RowSet? {
+        if let rs:SQLiteBindSet = querySQL(SQL) as! SQLite.RowSet? {
             //let length = rs.bindCount
             for row in rows {
                 let mirror = reflect(row)
@@ -725,7 +725,7 @@ extension SQLite.Handle : SQLiteInsert {
         var hasError = false
         //获取插入句柄绑定
         let SQL = "INSERT OR REPLACE INTO \(tableName) (\(keyString)) values(\(valueString))"
-        if let rs:SQLiteBindSet = querySQL(SQL) as SQLite.RowSet? {
+        if let rs:SQLiteBindSet = querySQL(SQL) as! SQLite.RowSet? {
             //let length = rs.bindCount
             
             var i = 0

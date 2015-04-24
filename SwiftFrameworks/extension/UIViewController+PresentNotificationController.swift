@@ -89,7 +89,7 @@ extension UIViewController {
             let topController = topViewController
             let target = topController.view
             println("target:\(target)")
-            let overlay = target.subviews[target.subviews.count - 2] as UIView
+            let overlay = target.subviews[target.subviews.count - 2] as! UIView
             let imageView = overlay.subviews.first as? UIImageView
             
             UIView.animateWithDuration(kNotificationModalAnimationDuration, animations: {

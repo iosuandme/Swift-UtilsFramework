@@ -89,14 +89,14 @@ struct Encrypt {
         }
 
 
-        return NSString(bytes: &contentChars, length: contentChars.count, encoding: NSUTF8StringEncoding)!
+        return NSString(bytes: &contentChars, length: contentChars.count, encoding: NSUTF8StringEncoding)! as String
     }
     
     // 解密 JSON
     func decodeJSON(encodeJSON:String, privateKey:String) -> String {
         let publicKeyChars  = Encrypt.bufferWithString(publicKey)
         let privateKeyChars = Encrypt.bufferWithString(privateKey)
-        var length = countElements(encodeJSON) + 1
+        var length = count(encodeJSON) + 1
         var contentChars:[UInt8] = Array<UInt8>(count: length, repeatedValue: 0)
 
         var range = encodeJSON.startIndex..<encodeJSON.endIndex
@@ -174,7 +174,7 @@ struct Encrypt {
         // 读取加密内容到数组
         
         
-        return NSString(bytes: &contentChars, length: contentChars.count, encoding: NSUTF8StringEncoding)!
+        return NSString(bytes: &contentChars, length: contentChars.count, encoding: NSUTF8StringEncoding)! as String
     }
     
 
@@ -214,7 +214,7 @@ struct Encrypt {
     }
     static func getRandomKey(length:Int) -> String {
         var buffer = getRandomKeyChars(length)
-        return NSString(bytes: &buffer, length: length, encoding: NSUTF8StringEncoding) ?? String(count: length, repeatedValue: UnicodeScalar(79))
+        return (NSString(bytes: &buffer, length: length, encoding: NSUTF8StringEncoding) ?? String(count: length, repeatedValue: UnicodeScalar(79))) as String
     }
     // 完成
 }

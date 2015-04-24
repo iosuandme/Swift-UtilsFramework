@@ -39,10 +39,10 @@ class FtpClient :NSObject, NSStreamDelegate {
         
         init (dictionary dict:[NSObject:AnyObject], rootURL:NSURL? = nil) {
             let ownerKey = "\(kCFFTPResourceGroup)" //kCFFTPResourceGroup as NSObject
-            owner = (dict["kCFFTPResourceOwner"] as? NSString) ?? ""
-            group = (dict["kCFFTPResourceGroup"] as? NSString) ?? ""
+            owner = ((dict["kCFFTPResourceOwner"] as? NSString) ?? "") as String
+            group = ((dict["kCFFTPResourceGroup"] as? NSString) ?? "") as String
             
-            name = (dict["kCFFTPResourceName"] as? NSString) ?? ""
+            name = ((dict["kCFFTPResourceName"] as? NSString) ?? "") as String
             
             let typeValue = dict["kCFFTPResourceType"] as? NSNumber
             type = Type(rawValue: typeValue?.integerValue ?? 0) ?? .Unknow
@@ -57,7 +57,7 @@ class FtpClient :NSObject, NSStreamDelegate {
                 link = NSURL(string: "\(root)\(name)")
                 //println("link:\(link)")
             } else if let url = dict["kCFFTPResourceLink"] as? NSString {
-                link = NSURL(string: url) // dict["kCFFTPResourceLink"] as? NSURL
+                link = NSURL(string: url as String) // dict["kCFFTPResourceLink"] as? NSURL
             }
 
         }
@@ -252,7 +252,7 @@ class FtpClient :NSObject, NSStreamDelegate {
         
         if let name = entry["kCFFTPResourceName"] as? NSString {
             if let data = name.dataUsingEncoding(NSMacOSRomanStringEncoding) {
-                newName = NSString(data: data, encoding: NSUTF8StringEncoding)
+                newName = NSString(data: data, encoding: NSUTF8StringEncoding) as?  String
             }
         }
         if let name = newName {

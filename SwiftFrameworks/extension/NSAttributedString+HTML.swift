@@ -29,7 +29,7 @@ extension NSAttributedString {
         
         var lastRange = NSMakeRange(0, 0)
         var lastLength:Int = 0
-        for match :NSTextCheckingResult in matches as [NSTextCheckingResult] {
+        for match :NSTextCheckingResult in matches as! [NSTextCheckingResult] {
             // 获取非TAG部分
             let loaction = lastRange.location + lastRange.length
             let length = match.range.location - loaction;
@@ -243,7 +243,7 @@ class NSAttributedStringHTML {
             if let attrs:NSString = attributesString {
                 let regular = NSRegularExpression(pattern: "\\s+(\\w+?)\\s*=\\s*['\"]?([^'\"]*)['\"\\s]?", options: NSRegularExpressionOptions.CaseInsensitive, error: nil)
                 let matches = regular!.matchesInString(attributesString, options: NSMatchingOptions(0), range: NSMakeRange(0, attrs.length))
-                for match :NSTextCheckingResult in matches as [NSTextCheckingResult] {
+                for match :NSTextCheckingResult in matches as! [NSTextCheckingResult] {
                     let key:String = attrs.substringWithRange(match.rangeAtIndex(1))
                     let value:String = attrs.substringWithRange(match.rangeAtIndex(2))
                     result[key.lowercaseString] = value
@@ -316,7 +316,7 @@ class NSAttributedStringHTML {
         let matches = regular!.matchesInString(content, options: NSMatchingOptions(0), range: NSMakeRange(0, str.length))
         //反序替换
         for i in reverse(0..<matches.count) {
-            let match = matches[i] as NSTextCheckingResult
+            let match = matches[i] as! NSTextCheckingResult
             let symbol = str.substringWithRange(match.rangeAtIndex(1))
                 offset += match.range.length - 1
             switch symbol {
@@ -832,7 +832,7 @@ class NSAttributedStringHTML {
             }
             //
         }
-        return (str,offset)
+        return (str as String,offset)
     }
 
 }

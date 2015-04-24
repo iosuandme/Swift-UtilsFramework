@@ -32,7 +32,7 @@ class HttpClient: NSObject {
             charactersToBeEscaped,
             CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding)) as NSString
         
-        return result
+        return result as String
     }
 
     class func arrayFromJSON(json:String!) -> [AnyObject]! {
@@ -66,7 +66,7 @@ class HttpClient: NSObject {
             println("object to JSON error:\(err.localizedDescription)")
             return nil
         } else {
-            return NSString(data: data!, encoding: NSUTF8StringEncoding)
+            return NSString(data: data!, encoding: NSUTF8StringEncoding) as? String
         }
     }
 
@@ -125,7 +125,7 @@ class HttpClient: NSObject {
                 fileManager.removeItemAtPath(filePath, error: nil)
                 fileManager.createFileAtPath(filePath, contents: nil, attributes: nil)
             } else {
-                let number = fileManager.attributesOfItemAtPath(filePath, error: nil)!["fileSize"] as NSNumber
+                let number = fileManager.attributesOfItemAtPath(filePath, error: nil)!["fileSize"] as! NSNumber
                 size = number.unsignedLongLongValue
             }
         } else {
@@ -243,12 +243,12 @@ extension HttpClient:NSURLConnectionDelegate {
         //let httpResponse = response as NSHTTPURLResponse
         receiveData = NSMutableData()
         if let onDownloadComplete = onDownloadOver {
-            let path = downloadCachePathWithURL(connection.currentRequest.URL)
+            let path = downloadCachePathWithURL(connection.currentRequest.URL!)
             if let data = NSData(contentsOfFile: path + ".download") {
                 receiveData!.appendData(data)
             }
             if let res = response as? NSHTTPURLResponse {
-                let length = res.allHeaderFields["Content-Length"] as NSString
+                let length = res.allHeaderFields["Content-Length"] as! NSString
                 topbytes = UInt64(length.longLongValue)
             }
             onDownloadComplete(topbytes: topbytes, data: receiveData, error: nil, finishPath: nil)
@@ -263,7 +263,7 @@ extension HttpClient:NSURLConnectionDelegate {
         //receiveData!.appendData(data)
         if let onDownloadComplete = onDownloadOver {
             if fileHandle == nil {
-                let path = downloadCachePathWithURL(connection.currentRequest.URL)
+                let path = downloadCachePathWithURL(connection.currentRequest.URL!)
                 fileHandle = NSFileHandle(forWritingAtPath: path + ".download")
             }
             fileHandle.seekToEndOfFile()
@@ -284,7 +284,7 @@ extension HttpClient:NSURLConnectionDelegate {
         self.connection = nil
         // 如果是Http访问
         if let complete = onHttpOver {
-            let html:String = NSString(data: receiveData!, encoding: NSUTF8StringEncoding)!
+            let html:String = NSString(data: receiveData!, encoding: NSUTF8StringEncoding)! as String
             complete(html: html,error: nil)
             onHttpOver = nil
         }
@@ -297,7 +297,7 @@ extension HttpClient:NSURLConnectionDelegate {
             }
             
             let url = connection.currentRequest.URL
-            let path = downloadCachePathWithURL(url)
+            let path = downloadCachePathWithURL(url!)
             
             let fileManager = NSFileManager.defaultManager()
             fileManager.moveItemAtPath(path + ".download", toPath: path, error: nil)
@@ -311,7 +311,7 @@ extension HttpClient:NSURLConnectionDelegate {
     }
     
     //网络请求过程中，出现任何错误（断网，连接超时等）会进入此方法
-    func connection(connection: NSURLConnection!, didFailWithError error: NSError!) {
+    func connection(connection: NSURLConnection, didFailWithError error: NSError) {
         self.connection = nil
         // 如果是Http访问
         if let complete = onHttpOver {

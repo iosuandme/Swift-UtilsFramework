@@ -6,7 +6,12 @@
 
 import Foundation
 
+func |=(lhs:Bool, rhs:Bool) -> Bool { return lhs || rhs }
+func &=(lhs:Bool, rhs:Bool) -> Bool { return lhs && rhs }
+
 extension String {
+    
+    
     
     // MARK: - 取类型名
     static func typeNameFromClass(aClass:AnyClass) -> String {
@@ -15,11 +20,11 @@ extension String {
         return demangleName.componentsSeparatedByString(".").last!
     }
     
-    static func typeNameFromAny(thing:Any) -> String {
-        let name = _stdlib_getTypeName(thing)
-        let demangleName = _stdlib_demangleName(name)
-        return demangleName.componentsSeparatedByString(".").last!
-    }
+//    static func typeNameFromAny(thing:Any) -> String {
+//        let name = _stdlib_getTypeName(thing)
+//        let demangleName = _stdlib_demangleName(name)
+//        return demangleName.componentsSeparatedByString(".").last!
+//    }
     
     // MARK: - 取大小
     #if os(iOS)
@@ -128,7 +133,7 @@ extension String {
             charactersToBeEscaped,
             CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding)) as NSString
         
-        return result
+        return result as String
     }
 
 }

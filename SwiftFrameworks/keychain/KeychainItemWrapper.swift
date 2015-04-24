@@ -68,7 +68,7 @@ public class KeychainWrapper {
         var objectValue: NSCoding?
         
         if let data = dataValue {
-            objectValue = NSKeyedUnarchiver.unarchiveObjectWithData(data) as NSCoding?
+            objectValue = NSKeyedUnarchiver.unarchiveObjectWithData(data) as! NSCoding?
         }
         
         return objectValue;
@@ -101,7 +101,7 @@ public class KeychainWrapper {
         // use the objective c wrapper for now as a work around to a known issue where data retrievale fails
         // for Swift optimized builds.
 
-        return  KeychainObjcWrapper.dataForDictionary(keychainQueryDictionary)
+        return  KeychainObjcWrapper.dataForDictionary(keychainQueryDictionary as [NSObject : AnyObject])
     }
     
     // MARK: Setting Values
