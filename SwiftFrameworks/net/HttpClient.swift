@@ -85,10 +85,9 @@ class HttpClient: NSObject {
     }
     
     func downloadCachePathWithURL(url:NSURL) -> String {
-        let name = url.description.componentsSeparatedByString(".").last!
+        let name = url.description.componentsSeparatedByString("/").last!
         //assert(!name.isEmpty || DEBUG == 0, "找不到要下载的文件名[\(url)]")
-        let fileName = "\(name).download"
-        return downloadCachePath.stringByAppendingPathComponent(fileName)
+        return downloadCachePath.stringByAppendingPathComponent(name)
     }
     
     // MARK: - Http下载
