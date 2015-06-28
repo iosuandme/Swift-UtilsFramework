@@ -8,9 +8,70 @@
 
 import Foundation
 
-let publicKey = "lksalfjadlksjfl99123" + "lksalfjadlksjfl99123" + "lksalfjadlksjfl99123"
 
-let privateKey = Encrypt.getRandomKey(16)
+var str = "Sign"
+let data = str.dataUsingEncoding(NSUTF8StringEncoding, allowLossyConversion: true)!
+let bytes:UnsafePointer<Int8> = UnsafePointer<Int8>(data.bytes)
+var chars:[Int8] = []
+for var i:Int = 0; i<data.length; i++ {
+    chars.append(bytes[i])
+}
+
+let home = NSHomeDirectory()
+let dir = home.stringByAppendingPathComponent("Wunderlist")
+//println(dir)
+
+
+
+func searchData(data:NSData, chars:[Int8]) -> Bool {
+    let bytes:UnsafePointer<Int8> = UnsafePointer<Int8>(data.bytes)
+    
+    for var i:Int = 0; i<data.length - chars.count; i++ {
+        if bytes[i] == chars[0] {
+            var isSame = true
+            for var j:Int = 1; j<chars.count; j++ {
+                isSame &= (bytes[i + j] == chars[j])
+            }
+            if isSame { return true }
+        }
+    }
+    return false
+}
+
+func showDir(path:String) {
+    var fileManager = NSFileManager.defaultManager()
+    if let array = fileManager.contentsOfDirectoryAtPath(path, error: nil) {
+        for item in array {
+            let filePath = "\(path)/\(item)"
+            if let data:NSData = fileManager.contentsAtPath(filePath) {
+                if searchData(data, chars) { println(filePath) }
+            }
+            //println(filePath)
+        }
+    } else {
+        println("目录空:\(path)")
+    }
+}
+
+showDir(dir)
+
+
+
+for var i:Int = 0 ; i<str.length; i++ {
+    let char = str.unicodeScalars[i]
+    
+    print(" \(char.value.toHex())")
+}
+println()
+/*
+let r = String(format: "数量%.2f", 0.5567)
+println(r)
+
+let str = "RVTR&67}=Zh^X(>^\\YZ(9aoYRa',y;Je'~Sh%9h$D}O7a091P0g4,/Rc$&\"9JgTM75`P^-3!\""
+
+let publicKey = "1321asq水电费13213"
+
+let privateKey = "121313123"
 
 let json = "{\"book\":\"Swift开发最高秘籍\"}"
 println(json)
@@ -23,10 +84,10 @@ let data = result.encodeURL()
 let post = "{key:\(privateKey), data:\(data)}"
 
 
-let src = encrypt.decodeJSON(result, privateKey: privateKey)
+let src = encrypt.decodeJSON(str, privateKey: privateKey)
 
 println(src)
-
+*/
 /*
 
 var char:Int32 = 0x778F9D & 0x7F
