@@ -8,17 +8,19 @@
 
 import Foundation
 
+
+
 class HttpClient: NSObject {
     
     //URL 解编码
     class func decodeEscapesURL(value:String) -> String? {
         let str:NSString = value
         return str.stringByReplacingPercentEscapesUsingEncoding(NSUTF8StringEncoding)
-/*
+        /*
         var outputStr:NSMutableString = NSMutableString(string:value);
         outputStr.replaceOccurrencesOfString("+", withString: " ", options: NSStringCompareOptions.LiteralSearch, range: NSMakeRange(0, outputStr.length))
         return outputStr.stringByReplacingPercentEscapesUsingEncoding(NSUTF8StringEncoding)
-*/
+        */
     }
     //URL 编码
     class func encodeEscapesURL(value:String) -> String {
@@ -34,7 +36,7 @@ class HttpClient: NSObject {
         
         return result as String
     }
-
+    
     class func arrayFromJSON(json:String!) -> [AnyObject]! {
         return objectFromJSON(json) as? [AnyObject] //Array<AnyObject>
     }
@@ -46,30 +48,31 @@ class HttpClient: NSObject {
     class func objectFromJSON(json:String!) -> AnyObject! {
         let string:NSString = json
         let data = string.dataUsingEncoding(NSUTF8StringEncoding)
-        var error:NSError?
-        let object : AnyObject! = NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions(0), error: &error)
-        if let err = error {
-            println("JSON to object error:\(err.localizedDescription)")
+        var object : AnyObject!
+        do {
+            object = try NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions(rawValue: 0))
+        } catch let error {
+            print("JSON to object error:\(error)")
             return nil
-        } else {
-            return object;
         }
+        return object;
+        
     }
     //把 Array 或 Dictionary 转 JSON
     class func JSONFromObject(object:AnyObject!) -> String!{
         if !NSJSONSerialization.isValidJSONObject(object) {
             return nil
         }
-        var error:NSError?
-        let data = NSJSONSerialization.dataWithJSONObject(object, options: NSJSONWritingOptions(0), error: &error)
-        if let err = error {
-            println("object to JSON error:\(err.localizedDescription)")
+        do {
+            let data = try NSJSONSerialization.dataWithJSONObject(object, options: NSJSONWritingOptions(rawValue: 0))
+            return String(data: data, encoding: NSUTF8StringEncoding)
+        } catch let error {
+            print("object to JSON error:\(error)")
             return nil
-        } else {
-            return NSString(data: data!, encoding: NSUTF8StringEncoding) as? String
         }
+        
     }
-
+    
     var timeoutInterval: NSTimeInterval
     init(timeoutInterval: NSTimeInterval){
         self.timeoutInterval = timeoutInterval
@@ -81,13 +84,14 @@ class HttpClient: NSObject {
     var downloadCachePath:String {
         //let document = NSSearchPathForDirectoriesInDomains(.DocumentDirectory, .UserDomainMask, true)[0] as NSString
         //return document.a
-        return NSTemporaryDirectory().stringByAppendingPathComponent("DownloadCaches")
+        return (NSTemporaryDirectory() as NSString).stringByAppendingPathComponent("DownloadCaches")
     }
     
     func downloadCachePathWithURL(url:NSURL) -> String {
-        let name = url.description.componentsSeparatedByString("/").last!
+        let name = url.description.componentsSeparatedByString(".").last!
         //assert(!name.isEmpty || DEBUG == 0, "找不到要下载的文件名[\(url)]")
-        return downloadCachePath.stringByAppendingPathComponent(name)
+        let fileName = "\(name).download"
+        return (downloadCachePath as NSString).stringByAppendingPathComponent(fileName)
     }
     
     // MARK: - Http下载
@@ -102,7 +106,9 @@ class HttpClient: NSObject {
         var isDir:ObjCBool = false
         let fileManager = NSFileManager.defaultManager()
         if !fileManager.fileExistsAtPath(cache, isDirectory: &isDir) || !isDir {
-            fileManager.createDirectoryAtPath(cache, withIntermediateDirectories: false, attributes: nil, error: nil)
+            do {
+                try fileManager.createDirectoryAtPath(cache, withIntermediateDirectories: false, attributes: nil)
+            } catch { }
         }
         
         let path = downloadCachePathWithURL(url)
@@ -121,16 +127,20 @@ class HttpClient: NSObject {
         } else if fileManager.fileExistsAtPath(path + ".download") {
             let filePath = path + ".download"
             if cleanCache {
-                fileManager.removeItemAtPath(filePath, error: nil)
+                do {
+                    try fileManager.removeItemAtPath(filePath)
+                } catch {}
                 fileManager.createFileAtPath(filePath, contents: nil, attributes: nil)
             } else {
-                let number = fileManager.attributesOfItemAtPath(filePath, error: nil)!["fileSize"] as! NSNumber
-                size = number.unsignedLongLongValue
+                do {
+                    let number = try fileManager.attributesOfItemAtPath(filePath)["fileSize"] as! NSNumber
+                    size = number.unsignedLongLongValue
+                } catch {}
             }
         } else {
             fileManager.createFileAtPath(path + ".download", contents: nil, attributes: nil)
         }
-
+        
         if size > 0 {
             if headers == nil { headers = [:] }
             headers!["Range"] = "bytes=\(size)-"
@@ -138,12 +148,12 @@ class HttpClient: NSObject {
         }
         
         
-
+        
         _request(URL: url, post: post, headers: headers, onComplete: nil)
         
         // 设置下载回调函数
         self.onDownloadOver = onComplete
-
+        
     }
     
     // MARK: - Http访问
@@ -157,13 +167,13 @@ class HttpClient: NSObject {
         //设置回掉函数
         self.onHttpOver = onComplete
         
-        var request:NSMutableURLRequest = NSMutableURLRequest(URL: url, cachePolicy: .UseProtocolCachePolicy, timeoutInterval: timeoutInterval)
+        let request:NSMutableURLRequest = NSMutableURLRequest(URL: url, cachePolicy: .UseProtocolCachePolicy, timeoutInterval: timeoutInterval)
         
         request.HTTPMethod = "GET"
         if let datas = post {
             if datas.count > 0 {
                 request.HTTPMethod = "POST"
-                var postString:NSMutableString = ""
+                let postString:NSMutableString = ""
                 for (key,value) in datas {
                     if postString.length > 0 {
                         postString.appendString("&")
@@ -215,7 +225,7 @@ class HttpClient: NSObject {
     }
     
     deinit {
-        if let connect = connection {
+        if let _ = connection {
             cancel()
         }
         if let handle = fileHandle {
@@ -269,8 +279,8 @@ extension HttpClient:NSURLConnectionDelegate {
             fileHandle.writeData(data)
             onDownloadComplete(topbytes: topbytes, data: receiveData, error: nil, finishPath: nil)
         }
-
-        if var receive = receiveData {
+        
+        if let receive = receiveData {
             receive.appendData(data)
         } else {
             receiveData = NSMutableData()
@@ -295,11 +305,13 @@ extension HttpClient:NSURLConnectionDelegate {
                 fileHandle = nil
             }
             
-            let url = connection.currentRequest.URL
-            let path = downloadCachePathWithURL(url!)
+            let url = connection.currentRequest.URL!
+            let path = downloadCachePathWithURL(url)
             
             let fileManager = NSFileManager.defaultManager()
-            fileManager.moveItemAtPath(path + ".download", toPath: path, error: nil)
+            do {
+                try fileManager.moveItemAtPath(path + ".download", toPath: path)
+            } catch {}
             
             
             onDownloadOver = nil
@@ -329,7 +341,7 @@ extension HttpClient:NSURLConnectionDelegate {
             onDownloadOver = nil
             topbytes = 0
             onDownloadComplete(topbytes: topbytes, data: receiveData, error: error, finishPath: nil)
-
+            
         }
         receiveData = nil
     }

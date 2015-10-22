@@ -8,7 +8,7 @@
 
 import Foundation
 
-func ==(lhs: Error, rhs: Error) -> Bool {
+public func ==(lhs: Error, rhs: Error) -> Bool {
     switch (lhs,rhs) {
     case (.OK, .OK):
         return true
@@ -22,7 +22,7 @@ func ==(lhs: Error, rhs: Error) -> Bool {
 }
 
 
-enum Error : Equatable {
+public enum Error : Equatable, ErrorType {
     case OK
     case Warning(content:String)
     case Error(code:Int, content:String, userInfo:Any?)
@@ -30,39 +30,39 @@ enum Error : Equatable {
 
 /*
 struct Error {
-    let code:Int
-    let content:String
-    let file:String
-    let funcName:String
-    let line:UInt
-    let userInfo:Any?
-    
-    init(code:Int, content:String, userInfo:Any? = nil, file:String = __FILE__, funcName:String = __FUNCTION__, line:UInt = __LINE__) {
-        self.code = code
-        self.content = content
-        self.file = file
-        self.line = line
-        self.funcName = funcName
-        self.userInfo = userInfo
-    }
+let code:Int
+let content:String
+let file:String
+let funcName:String
+let line:UInt
+let userInfo:Any?
+
+init(code:Int, content:String, userInfo:Any? = nil, file:String = __FILE__, funcName:String = __FUNCTION__, line:UInt = __LINE__) {
+self.code = code
+self.content = content
+self.file = file
+self.line = line
+self.funcName = funcName
+self.userInfo = userInfo
+}
 }
 */
 
-extension Error : Printable {
-    var description: String {
+extension Error : CustomStringConvertible {
+    public var description: String {
         switch self {
         case .OK:
             return "OK"
         case let .Warning (content):
             return "Warning:\(content)"
-        case let .Error (code, content, userInfo):
+        case let .Error (code, content, _):
             return "Error:\(code) -> \(content)"
         }
     }
 }
 
-extension Error : DebugPrintable {
-    var debugDescription: String {
+extension Error : CustomDebugStringConvertible {
+    public var debugDescription: String {
         switch self {
         case .OK:
             return "OK"

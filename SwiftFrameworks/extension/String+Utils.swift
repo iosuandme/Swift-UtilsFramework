@@ -1,128 +1,123 @@
-//
-//  String+Utils.swift
-//
-//  Created by bujiandi(慧趣小歪) on 14/8/6.
-//
 
-import Foundation
-
-func |=(lhs:Bool, rhs:Bool) -> Bool { return lhs || rhs }
-func &=(lhs:Bool, rhs:Bool) -> Bool { return lhs && rhs }
+#if os(iOS)
+    import UIKit
+    #elseif os(OSX)
+    import Foundation
+#endif
 
 extension String {
     
     
-    
+    //    // create a static method to get a swift class for a string name
+    //    public class func swiftClassFromString(className: String) -> AnyClass! {
+    //        // get the project name
+    //        if  var appName: String = NSBundle.mainBundle().objectForInfoDictionaryKey("CFBundleName") as? String {
+    //            // generate the full name of your class (take a look into your "YourProject-swift.h" file)
+    //            let classStringName = "_TtC\(appName.utf16count)\(appName)\(className.length)\(className)"
+    //            // return the class!
+    //            return NSClassFromString(classStringName)
+    //        }
+    //        return nil
+    //    }
     // MARK: - 取类型名
-    static func typeNameFromClass(aClass:AnyClass) -> String {
+    public static func typeNameFromClass(aClass:AnyClass) -> String {
         let name = NSStringFromClass(aClass)
         let demangleName = _stdlib_demangleName(name)
         return demangleName.componentsSeparatedByString(".").last!
     }
     
-//    static func typeNameFromAny(thing:Any) -> String {
-//        let name = _stdlib_getTypeName(thing)
-//        let demangleName = _stdlib_demangleName(name)
-//        return demangleName.componentsSeparatedByString(".").last!
-//    }
+    //    static func typeNameFromAny(thing:Any) -> String {
+    //        let name = _stdlib_getTypeName(thing)
+    //        let demangleName = _stdlib_demangleName(name)
+    //        return demangleName.componentsSeparatedByString(".").last!
+    //    }
     
     // MARK: - 取大小
     #if os(iOS)
-    func boundingRectWithSize(size: CGSize, defaultFont:UIFont = UIFont.systemFontOfSize(16), lineBreakMode:NSLineBreakMode = .ByWordWrapping) -> CGSize {
-        var label:UILabel = UILabel()
-        label.lineBreakMode = lineBreakMode
-        label.font = defaultFont
-        label.numberOfLines = 0
-        label.text = self
-        return label.sizeThatFits(size)
-    }
+    //    func boundingRectWithSize(size: CGSize, defaultFont:UIFont = UIFont.systemFontOfSize(16), lineBreakMode:NSLineBreakMode = .ByWordWrapping) -> CGSize {
+    //        var label:UILabel = UILabel()
+    //        label.lineBreakMode = lineBreakMode
+    //        label.font = defaultFont
+    //        label.numberOfLines = 0
+    //        label.text = self
+    //        return label.sizeThatFits(size)
+    //    }
     #endif
     
     // MARK: - 取路径末尾文件名
-    var stringByDeletingPathPrefix:String {
+    public var stringByDeletingPathPrefix:String {
         return self.componentsSeparatedByString("/").last!
     }
     // MARK: - 长度
-    var length:Int {
-        return distance(startIndex, endIndex)
+    public var length:Int {
+        return self.startIndex.distanceTo(endIndex) //distance(startIndex, endIndex)
     }
     
     // MARK: - 字符串截取
-    func substringToIndex(index:Int) -> String {
-        return self.substringToIndex(advance(self.startIndex, index))
+    public func substringToIndex(index:Int) -> String {
+        return self.substringToIndex(self.startIndex.advancedBy(index)) // advance(self.startIndex, index))
     }
-    func substringFromIndex(index:Int) -> String {
-        return self.substringFromIndex(advance(self.startIndex, index))
+    public func substringFromIndex(index:Int) -> String {
+        return self.substringFromIndex(self.startIndex.advancedBy(index)) //advance(self.startIndex, index))
     }
-    func substringWithRange(range:Range<Int>) -> String {
-        let start = advance(self.startIndex, range.startIndex)
-        let end = advance(self.startIndex, range.endIndex)
+    public func substringWithRange(range:Range<Int>) -> String {
+        let start = startIndex.advancedBy(range.startIndex) //advance(self.startIndex, range.startIndex)
+        let end = startIndex.advancedBy(range.endIndex) //advance(self.startIndex, range.endIndex)
         return self.substringWithRange(start..<end)
     }
     
-    subscript(index:Int) -> Character{
-        return self[advance(self.startIndex, index)]
+    public subscript(index:Int) -> Character{
+        return self[self.startIndex.advancedBy(index)] //advance(self.startIndex, index)]
     }
     
-    subscript(subRange:Range<Int>) -> String {
-        return self[advance(self.startIndex, subRange.startIndex)..<advance(self.startIndex, subRange.endIndex)]
-    }
-    // MARK: - 字符串查找
-    func indexOf(str:String) -> Int {
-        for var i:Int = 0; i<self.length - str.length; i++ {
-            if self[i] == str[0] {
-                var equal:Bool = true
-                for var j:Int = 1; j<str.length; j++ {
-                    equal &= self[i+j] == str[j]
-                }
-                if equal {  return i  }
-                
-            }
-        }
-        
-        return -1
+    public subscript(subRange:Range<Int>) -> String {
+        return self[self.startIndex.advancedBy(subRange.startIndex)..<self.startIndex.advancedBy(subRange.endIndex)]
+        //return self[advance(self.startIndex, subRange.startIndex)..<advance(self.startIndex, subRange.endIndex)]
     }
     
     // MARK: - 字符串修改 RangeReplaceableCollectionType
-    mutating func insert(newElement: Character, atIndex i: Int) {
-        insert(newElement, atIndex: advance(self.startIndex,i))
-    }
-
-    mutating func splice(newValues: String, atIndex i: Int) {
-        splice(newValues, atIndex: advance(self.startIndex,i))
+    public mutating func insert(newElement: Character, atIndex i: Int) {
+        insert(newElement, atIndex: startIndex.advancedBy(i)) //advance(self.startIndex,i))
     }
     
-    mutating func replaceRange(subRange: Range<Int>, with newValues: String) {
-        let start = advance(self.startIndex, subRange.startIndex)
-        let end = advance(self.startIndex, subRange.endIndex)
+    //    public mutating func splice<S : CollectionType where S.Generator.Element == Character>(newElements: S, atIndex i:Int) {
+    //        splice(newElements, atIndex: startIndex.advancedBy(i)) //advance(self.startIndex,i))
+    //    }
+    
+    public mutating func replaceRange(subRange: Range<Int>, with newValues: String) {
+        let start = startIndex.advancedBy(subRange.startIndex) //advance(self.startIndex, range.startIndex)
+        let end = startIndex.advancedBy(subRange.endIndex) //advance(self.startIndex, range.endIndex)
         replaceRange(start..<end, with: newValues)
     }
     
-    mutating func removeAtIndex(i: Int) -> Character {
-        return removeAtIndex(advance(self.startIndex,i))
+    public mutating func removeAtIndex(i: Int) -> Character {
+        return removeAtIndex(startIndex.advancedBy(i)) //advance(self.startIndex,i))
     }
     
-    mutating func removeRange(subRange: Range<Int>) {
-        let start = advance(self.startIndex, subRange.startIndex)
-        let end = advance(self.startIndex, subRange.endIndex)
+    public mutating func removeRange(subRange: Range<Int>) {
+        let start = startIndex.advancedBy(subRange.startIndex) //advance(self.startIndex, range.startIndex)
+        let end = startIndex.advancedBy(subRange.endIndex) //advance(self.startIndex, range.endIndex)
         removeRange(start..<end)
     }
-
+    
     // MARK: - 字符串拆分
-    func separatedByString(separator: String) -> [String] {
+    public func splitByString(separator: String) -> [String] {
         return self.componentsSeparatedByString(separator)
     }
-    func separatedByCharacters(separators: String) -> [String] {
+    public func splitByCharacters(separators: String) -> [String] {
         return self.componentsSeparatedByCharactersInSet(NSCharacterSet(charactersInString: separators))
     }
     
     // MARK: - URL解码/编码
-    func decodeURL() -> String! {
+    
+    /// 给URL解编码
+    public func decodeURL() -> String! {
         let str:NSString = self
         return str.stringByReplacingPercentEscapesUsingEncoding(NSUTF8StringEncoding)
     }
     
-    func encodeURL() -> String {
+    /// 给URL编码
+    public func encodeURL() -> String {
         let originalString:CFStringRef = self as NSString
         let charactersToBeEscaped = "!*'();:@&=+$,/?%#[]" as CFStringRef  //":/?&=;+!@#$()',*"    //转意符号
         //let charactersToLeaveUnescaped = "[]." as CFStringRef  //保留的符号
@@ -135,52 +130,61 @@ extension String {
         
         return result as String
     }
-
+    
 }
 
 extension String.UnicodeScalarView {
-    subscript (i: Int) -> UnicodeScalar {
-        return self[advance(self.startIndex, i)]
+    public subscript (i: Int) -> UnicodeScalar {
+        return self[startIndex.advancedBy(i)] //advance(self.startIndex, i)]
     }
 }
 
-func trimPrefix(text:String) -> String {
-    var start:Int = 0
-    for char:Character in text {
-        switch char {
-        case "\n", " ", "\r":
-            start++
-        default:
-            return text.substringFromIndex(start)
-        }
+
+/// trim 去掉字符串两段的换行与空格
+extension String {
+    public enum TrimMode : Int {
+        case Both
+        case Prefix
+        case Suffix
     }
-    return ""
-}
-func trimSuffix(text:String) -> String {
-    var start:Int = 0
-    let chars = reverse(text)
-    for char:Character in chars {
-        switch char {
-        case "\n", " ", "\r":
-            start++
-        default:
-            return text.substringToIndex(chars.count - start)
+    
+    public func trim(mode:TrimMode = .Both) -> String {
+        var start:Int = 0
+        switch mode {
+        case .Both:
+            return self.trim(.Prefix).trim(.Suffix)
+        case .Prefix:
+            for char:Character in characters {
+                switch char {
+                case " ", "\n", "\r", "\r\n", "\t":   // \r\n 是一个字符  \n\r 是2个字符
+                    start++
+                default:
+                    return substringFromIndex(start)
+                }
+            }
+        case .Suffix:
+            let chars = characters.reverse()
+            for char:Character in chars {
+                switch char {
+                case " ", "\n", "\r", "\r\n", "\t":   // \r\n 是一个字符  \n\r 是2个字符
+                    start++
+                default:
+                    return substringToIndex(chars.count - start)
+                }
+            }
         }
+        return ""
     }
-    return ""
-}
-func trim(text:String) -> String {
-    return trimSuffix(trimPrefix(text))
 }
 
 /*
 extension NSURL: StringLiteralConvertible {
-    public class func convertFromExtendedGraphemeClusterLiteral(value: String) -> Self {
-        return self(string: value)
-    }
-    
-    public class func convertFromStringLiteral(value: String) -> Self {
-        return self(string: value)
-    }
+public class func convertFromExtendedGraphemeClusterLiteral(value: String) -> Self {
+return self(string: value)
+}
+
+public class func convertFromStringLiteral(value: String) -> Self {
+return self(string: value)
+}
 }
 */

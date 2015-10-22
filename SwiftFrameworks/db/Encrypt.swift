@@ -137,7 +137,7 @@ struct Encrypt {
                 char = char < 10 ? char : char - 7
                 length += char << (28 - i * 4)
             }
-            println("随机密钥长度\(length)")
+            print("随机密钥长度\(length)")
             // 0 ... 5     0 , 1 ,2 , 3 ,4
             let randomKeyChars = contentChars[8...(length + 7)]
             //var contents = contentChars[(length + 3)..<usedLength]
@@ -168,7 +168,7 @@ struct Encrypt {
                 char = char < 32 ? char + 94 : char
                 contentChars[i] = UInt8(char & 0x7F)
             }
-            println(contentChars.count)
+            print(contentChars.count)
 
         }
         // 读取加密内容到数组
@@ -182,7 +182,7 @@ struct Encrypt {
     static func bufferWithString(string:String) -> [UInt8] {
         var buffer = Array<UInt8>()
         for unicodeScalar in string.unicodeScalars {
-            var char = unicodeScalar.value
+            let char = unicodeScalar.value
             if !unicodeScalar.isASCII() {
                 buffer.append(92)           // 代表\
                 buffer.append(117)          // 代表u

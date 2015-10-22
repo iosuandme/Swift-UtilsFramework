@@ -220,7 +220,7 @@ class SQLite {
         // 打开数据库
         let (sqlHandle,error) = open()
         assert(error == .OK, "无法打开数据库")
-        var handle = sqlHandle as! SQLite.Handle
+        let handle = sqlHandle as! SQLite.Handle
         
         let newVersion = Int(version)
         let oldVersion = handle.version
@@ -229,7 +229,7 @@ class SQLite {
             if onUpgrade(db: handle, oldVersion: oldVersion, newVersion: newVersion) {
                 handle.version = newVersion
             } else {
-                println("版本没有更新")
+                print("版本没有更新")
             }
         }
     }
@@ -267,7 +267,7 @@ extension SQLite.Handle : SQLiteBase {
     private func execSQL(SQL:String) -> Error {
         let sql:NSString = SQL
         if SQLITE_OK != sqlite3_execute(_handle,sql.UTF8String,nil,nil,nil) {
-            println(lastError)
+            print(lastError)
             return lastError
         }
         return .OK
@@ -286,7 +286,7 @@ extension SQLite.Handle : SQLiteBase {
         var stmt:COpaquePointer = nil
         if SQLITE_OK != sqlite3_prepare_v2(_handle, _lastSQL.UTF8String, -1, &stmt, nil) {
             sqlite3_finalize(stmt)
-            println(lastError)
+            print(lastError)
             return nil
         }
         return SQLite.RowSet(stmt);
@@ -328,7 +328,7 @@ extension SQLite.Handle : SQLiteVersion {
 extension SQLite.Handle : SQLiteMove {
     // newTableName 必须不存在,系统自动创建
     func select(columns:[String]?, into newTableName:String, from oldTableName:String, Where:String?) -> Error {
-        var columnNames = columns?.componentsJoinedByString(", ") ?? "*"
+        let columnNames = columns?.componentsJoinedByString(", ") ?? "*"
         var sql:String?
         
         if let condition = Where {
@@ -528,7 +528,7 @@ extension SQLite.Handle : SQLiteDeleteTable {
 extension SQLite.Handle : SQLiteSelect {
     // 查询数量
     func select(count columns:[String]?, from tableName:String, Where:String?) -> Int {
-        var columnNames = columns?.componentsJoinedByString(", ") ?? "*"
+        let columnNames = columns?.componentsJoinedByString(", ") ?? "*"
         var sql = "SELECT count(\(columnNames)) FROM \(tableName)"
         
         if let end = Where {
@@ -542,7 +542,7 @@ extension SQLite.Handle : SQLiteSelect {
     
     // 普通查询
     func select(columns:[String]?, from tableName:String, Where:String?) -> SQLiteResultSet? {
-        var columnNames = columns?.componentsJoinedByString(", ") ?? "*"
+        let columnNames = columns?.componentsJoinedByString(", ") ?? "*"
         if let condition = Where {
             return querySQL("SELECT \(columnNames) FROM \(tableName) WHERE \(condition)")
         }
@@ -551,7 +551,7 @@ extension SQLite.Handle : SQLiteSelect {
     
     // 联合查询
     func select(columns:[String]?, from tables:[String:SQLTableName], Where:String?) -> SQLiteResultSet? {
-        var columnNames = columns?.componentsJoinedByString(", ") ?? "*"
+        let columnNames = columns?.componentsJoinedByString(", ") ?? "*"
         var paramString = ""
         for (key,value) in tables {
             if !paramString.isEmpty {
@@ -845,7 +845,7 @@ extension SQLite.RowSet : SQLiteBindSet {
             case let value as NSData:
                 return sqlite3_bind_data(_stmt,CInt(index),value.bytes,-1,nil)
             default:
-                let mirror = reflect(v)
+                let mirror = v.reflect()
                 if mirror.disposition == .Optional {
                     if mirror.count == 0 {
                         return sqlite3_bind_null(_stmt,CInt(index))
@@ -1010,7 +1010,7 @@ extension SQLite.RowSet : SQLiteResultSet {
 
 // MARK: - SQLite 其他
 // MARK: ColumnState 头附加状态
-enum SQLColumnState : Int, Printable {
+enum SQLColumnState : Int, CustomStringConvertible {
     case None = 0
     //case ForeignKey                 //外键 SQLite中好像没有约束作用,创建也会失败
     case PrimaryKey                 //主键
@@ -1064,7 +1064,7 @@ enum SQLColumnState : Int, Printable {
 }
 
 // MARK: ColumnType
-enum SQLColumnType : Printable{
+enum SQLColumnType : CustomStringConvertible{
     
     // INTEGER 1 数值
     case INTEGER

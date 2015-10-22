@@ -13,13 +13,24 @@ class HTMLFilter {
     static func filter(HTML:String) -> String {
         let html:NSMutableString = NSMutableString(string: HTML)
         
-        var regular = NSRegularExpression(pattern: "<\\!--[\\S|\\s]*?-->", options: NSRegularExpressionOptions.CaseInsensitive, error: nil)
+//        var regular = NSRegularExpression(pattern: "<\\!--[\\S|\\s]*?-->", options: NSRegularExpressionOptions.CaseInsensitive, error: nil)
         
-        regular?.replaceMatchesInString(html, options: NSMatchingOptions(0), range: NSMakeRange(0, html.length), withTemplate: "")
+        do {
+            var regular = try NSRegularExpression(pattern: "<\\!--[\\S|\\s]*?-->", options: NSRegularExpressionOptions.CaseInsensitive)
+            regular.replaceMatchesInString(html, options: NSMatchingOptions(rawValue: 0), range: NSMakeRange(0, html.length), withTemplate: "")
+            do {
+                regular = try NSRegularExpression(pattern: "<[^>]+>", options: NSRegularExpressionOptions.CaseInsensitive)
+                regular.replaceMatchesInString(html, options: NSMatchingOptions(rawValue: 0), range: NSMakeRange(0, html.length), withTemplate: "")
+            } catch {
+            
+            }
+            
+
+
+        } catch {
+            
+        }
         
-        regular = NSRegularExpression(pattern: "<[^>]+>", options: NSRegularExpressionOptions.CaseInsensitive, error: nil)
-        
-        regular?.replaceMatchesInString(html, options: NSMatchingOptions(0), range: NSMakeRange(0, html.length), withTemplate: "")
         
         return html as String
 /*

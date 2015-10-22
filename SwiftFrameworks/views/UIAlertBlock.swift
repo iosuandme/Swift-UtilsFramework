@@ -27,13 +27,13 @@ class UIAlertBlock: UIAlertView, UIAlertViewDelegate {
     }
     
     init(title: String?, message: String?) {
-        super.init(frame:CGRect.zeroRect)
+        super.init(frame:CGRect.zero)
         self.title = title ?? ""
         self.message = message
     }
 
     required init(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
+        super.init(coder: aDecoder)!
     }
     
     private lazy var actions:[Action] = []
