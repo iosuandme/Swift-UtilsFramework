@@ -40,7 +40,7 @@ class UITextArea: UITextView {
     
     override func insertText(text: String) {
         let size = self.sizeThatFits(CGSize(width: bounds.width, height: textContainer.size.height))
-        println("size\(size)")
+        print("size\(size)")
         frame.size.height = size.height// + textContainerInset.top + textContainerInset.bottom
         super.insertText(text)
     }
@@ -48,7 +48,6 @@ class UITextArea: UITextView {
     override func replaceRange(range: UITextRange, withText text: String)  {
         super.replaceRange(range, withText: text)
         let size = self.sizeThatFits(CGSize(width: bounds.width, height: textContainer.size.height))
-        println("size\(size)")
         frame.size.height = size.height + textContainerInset.top + textContainerInset.bottom
     }
     
@@ -76,7 +75,7 @@ class UITextArea: UITextView {
             var rect = self.bounds
             rect.origin.x = 7.0
             rect.size.width = rect.width - 14.0
-            var label = UILabel(frame: rect)
+            let label = UILabel(frame: rect)
             if let text = placeholder {
                 label.text = text as String
             }

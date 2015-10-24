@@ -21,6 +21,7 @@ extension NSAttributedString {
     
     convenience init(HTML:String, defaultFontSize size:CGFloat, imageFactory:((imageURL:String) -> UIImage?)?) {
         let html:NSString = HTML
+        var attrString = NSMutableAttributedString(string: "")
         do {
             let regular = try NSRegularExpression(pattern: "<\\s*(/)?\\s*(\\w+)(.*?)(/)?\\s*>", options: NSRegularExpressionOptions.CaseInsensitive)
             let matches = regular.matchesInString(HTML, options: NSMatchingOptions(rawValue: 0), range: NSMakeRange(0, html.length))
@@ -30,8 +31,8 @@ extension NSAttributedString {
             
             var lastRange = NSMakeRange(0, 0)
             var lastLength:Int = 0
-            for match :NSTextCheckingResult in matches as! [NSTextCheckingResult] {
-                // 获取非TAG部分
+            for match :NSTextCheckingResult in matches {
+                // 获attrString取非TAG部分
                 let loaction = lastRange.location + lastRange.length
                 let length = match.range.location - loaction;
                 let tmp = html.substringWithRange(NSMakeRange(loaction, length))
@@ -86,7 +87,7 @@ extension NSAttributedString {
                 content += text
             }
             
-            let attrString = NSMutableAttributedString(string: content, attributes: [NSFontAttributeName:UIFont.systemFontOfSize(size)])
+            attrString = NSMutableAttributedString(string: content, attributes: [NSFontAttributeName:UIFont.systemFontOfSize(size)])
 
             while elements.count > 0 {
                 let element = elements.removeAtIndex(0)
@@ -106,7 +107,7 @@ extension NSAttributedString {
                     attrString.addAttribute(NSFontAttributeName, value: UIFont.italicSystemFontOfSize(size), range: range)
                 case .U :
                     attrString.addAttribute(NSUnderlineStyleAttributeName, value: 1, range: range)
-                case let .A (href, _, target) :
+                case let .A (href, _, _) :
                     attrString.addAttribute(NSLinkAttributeName, value: href, range: range)
                 case .BR :
                     attrString.replaceCharactersInRange(NSMakeRange(range.location, 0), withString: "\n")
@@ -127,7 +128,7 @@ extension NSAttributedString {
                     attrString.addAttributes(["NSSuperScript":NSNumber(int: 1), NSFontAttributeName:UIFont.systemFontOfSize(9.0)], range: range)
                 case let .IMG(src, alt) :
                     if let image = imageFactory?(imageURL: src) {                //如果能取到图片
-                        var attachment = NSTextAttachment(data: nil, ofType: nil)
+                        let attachment = NSTextAttachment(data: nil, ofType: nil)
                         attachment.image = image
                         attrString.replaceCharactersInRange(range, withAttributedString: NSAttributedString(attachment: attachment))
                         NSAttributedStringHTML.HTMLElement.changeElementOffset(1-range.length, withLoacaton: range.location + 1, inElements: &elements)
@@ -142,20 +143,19 @@ extension NSAttributedString {
                             NSAttributedStringHTML.HTMLElement.changeElementOffset(str.length, withLoacaton: range.location, inElements: &elements)
                         }
                     }
-                    self.init(attributedString:attrString)
 
                 default :
+
                     break
                 }
             }
             
         } catch {
-        
         }
 
 //<-while结束
+        self.init(attributedString:attrString)
         //解析完成
-        
     }
 }
 
@@ -225,8 +225,7 @@ class NSAttributedStringHTML {
             case "BR" :
                 return .BR
             case "H1","H2","H3","H4","H5","H6","H7" :
-                let str:NSString = tag
-                return .Hn (Int(str.characterAtIndex(1) - 48))
+                return .Hn (Int(tag.unicodeScalars[tag.unicodeScalars.startIndex.advancedBy(1)].value) - 48)
             case "LI" :
                 return .LI
             case "SUB" :
@@ -253,7 +252,7 @@ class NSAttributedStringHTML {
                 do {
                     let regular = try NSRegularExpression(pattern: "\\s+(\\w+?)\\s*=\\s*['\"]?([^'\"]*)['\"\\s]?", options: NSRegularExpressionOptions.CaseInsensitive)
                     let matches = regular.matchesInString(attributesString, options: NSMatchingOptions(rawValue: 0), range: NSMakeRange(0, attrs.length))
-                    for match :NSTextCheckingResult in matches as! [NSTextCheckingResult] {
+                    for match :NSTextCheckingResult in matches {
                         let key:String = attrs.substringWithRange(match.rangeAtIndex(1))
                         let value:String = attrs.substringWithRange(match.rangeAtIndex(2))
                         result[key.lowercaseString] = value
@@ -323,7 +322,7 @@ class NSAttributedStringHTML {
         var range:NSRange = NSMakeRange(NSNotFound, 0)
     }
     
-    class func replaceSymbol(var content:String) -> (String,Int) {
+    class func replaceSymbol(content:String) -> (String,Int) {
         var offset = 0
         let str:NSMutableString = NSMutableString(string: content)
         do {
@@ -336,7 +335,7 @@ class NSAttributedStringHTML {
                 offset += match.range.length - 1
                 switch symbol {
                 case let x where x.hasPrefix("#"):
-                    if let num = x.substringFromIndex(advance(x.startIndex, 1)).toInt() {
+                    if let num = Int(x.substringFromIndex(x.startIndex.advancedBy(1))) {
                         let char = String(Character(UnicodeScalar(UInt32(num))))
                         str.replaceCharactersInRange(match.range, withString: char)
                     } else {

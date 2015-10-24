@@ -19,7 +19,7 @@ func chineseInt(var code:Int64) -> String {
     var unit = 0
     var buffer:[Character] = []
     var deleteZero = false
-    do {
+    repeat {
         let i = Int(code % 10)
         code = code / 10
         unit++
@@ -48,7 +48,7 @@ func chineseInt(var code:Int64) -> String {
         }
     } while code > 0
     
-    return String(reverse(buffer))
+    return String(buffer.reverse())
 }
 
 extension Int : Hexabled {
@@ -58,13 +58,13 @@ extension Int : Hexabled {
     func strtoul(n:Int) -> String {
         var buffer:[Character] = []
         var num = self
-        do {
+        repeat {
             let i = num & (n - 1)
             let unicode = UInt32(i + (i > 9 ? 55 : 48))
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(reverse(buffer))
+        return String(buffer.reverse())
     }
     func toChinese() -> String { return chineseInt(Int64(self)) }
 }
@@ -76,13 +76,13 @@ extension UInt : Hexabled {
     func strtoul(n:UInt) -> String {
         var buffer:[Character] = []
         var num = self
-        do {
+        repeat {
             let i = num & (n - 1)
             let unicode = UInt32(i + (i > 9 ? 55 : 48))
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(reverse(buffer))
+        return String(buffer.reverse())
     }
     func toChinese() -> String { return chineseInt(Int64(self)) }
 }
@@ -94,13 +94,13 @@ extension Int8 : Hexabled{
     func strtoul(n:Int8) -> String {
         var buffer:[Character] = []
         var num = self
-        do {
+        repeat {
             let i = num & (n - 1)
             let unicode = UInt32(i + (i > 9 ? 55 : 48))
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(reverse(buffer))
+        return String(buffer.reverse())
     }
     func toChinese() -> String { return chineseInt(Int64(self)) }
 }
@@ -112,13 +112,13 @@ extension UInt8 : Hexabled{
     func strtoul(n:UInt8) -> String {
         var buffer:[Character] = []
         var num = self
-        do {
+        repeat {
             let i = num & (n - 1)
             let unicode = UInt32(i + (i > 9 ? 55 : 48))
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(reverse(buffer))
+        return String(buffer.reverse())
     }
     func toChinese() -> String { return chineseInt(Int64(self)) }
 }
@@ -130,13 +130,13 @@ extension Int16 : Hexabled{
     func strtoul(n:Int16) -> String {
         var buffer:[Character] = []
         var num = self
-        do {
+        repeat {
             let i = num & (n - 1)
             let unicode = UInt32(i + (i > 9 ? 55 : 48))
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(reverse(buffer))
+        return String(buffer.reverse())
     }
     func toChinese() -> String { return chineseInt(Int64(self)) }
 }
@@ -148,13 +148,13 @@ extension UInt16 : Hexabled{
     func strtoul(n:UInt16) -> String {
         var buffer:[Character] = []
         var num = self
-        do {
+        repeat {
             let i = num & (n - 1)
             let unicode = UInt32(i + (i > 9 ? 55 : 48))
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(reverse(buffer))
+        return String(buffer.reverse())
     }
     func toChinese() -> String { return chineseInt(Int64(self)) }
 }
@@ -166,13 +166,13 @@ extension Int32 : Hexabled{
     func strtoul(n:Int32) -> String {
         var buffer:[Character] = []
         var num = self
-        do {
+        repeat {
             let i = num & (n - 1)
             let unicode = UInt32(i + (i > 9 ? 55 : 48))
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(reverse(buffer))
+        return String(buffer.reverse())
     }
     func toChinese() -> String { return chineseInt(Int64(self)) }
 }
@@ -184,13 +184,13 @@ extension UInt32 : Hexabled{
     func strtoul(n:UInt32) -> String {
         var buffer:[Character] = []
         var num = self
-        do {
+        repeat {
             let i = num & (n - 1)
             let unicode = UInt32(i + (i > 9 ? 55 : 48))
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(reverse(buffer))
+        return String(buffer.reverse())
     }
     func toChinese() -> String { return chineseInt(Int64(self)) }
 }
@@ -202,13 +202,13 @@ extension Int64 : Hexabled{
     func strtoul(n:Int64) -> String {
         var buffer:[Character] = []
         var num = self
-        do {
+        repeat {
             let i = num & (n - 1)
             let unicode = UInt32(i + (i > 9 ? 55 : 48))
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(reverse(buffer))
+        return String(buffer.reverse())
     }
     func toChinese() -> String { return chineseInt(Int64(self)) }
 }
@@ -220,13 +220,13 @@ extension UInt64 : Hexabled{
     func strtoul(n:UInt64) -> String {
         var buffer:[Character] = []
         var num = self
-        do {
+        repeat {
             let i = num & (n - 1)
             let unicode = UInt32(i + (i > 9 ? 55 : 48))
             buffer.append(Character(UnicodeScalar(unicode)))
             num >>= 4
         } while num > 0
-        return String(reverse(buffer))
+        return String(buffer.reverse())
     }
     func toChinese() -> String { return chineseInt(Int64(self)) }
 }

@@ -77,7 +77,7 @@ class UISectionNotificationController: UITableViewController {
     
     // MARK: - Table view data source
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCellWithIdentifier(notificationCellIdentifier, forIndexPath: indexPath) as! UITableViewCell
+        let cell = tableView.dequeueReusableCellWithIdentifier(notificationCellIdentifier, forIndexPath: indexPath) 
         
         cell.textLabel?.text = message
         cell.backgroundColor = UIColor(red: 250/255, green: 250/255, blue: 210/255, alpha: 1)

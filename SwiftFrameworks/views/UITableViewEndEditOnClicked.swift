@@ -16,7 +16,7 @@ class UITableViewEndEditOnClicked: UITableView {
 
     override func hitTest(point: CGPoint, withEvent event: UIEvent!) -> UIView?  {
         let view = super.hitTest(point, withEvent: event)
-        let mirror:MirrorType = view.getMirror()
+        let mirror:_MirrorType = view._getMirror()
         switch mirror.valueType {
         case _ as UITextField.Type:
             break;

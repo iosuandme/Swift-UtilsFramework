@@ -108,6 +108,23 @@ extension String {
         return self.componentsSeparatedByCharactersInSet(NSCharacterSet(charactersInString: separators))
     }
     
+    // MARK: - 字符串查找
+    func indexOf(str:String) -> Int {
+        for var i:Int = 0; i<self.length - str.length; i++ {
+            if self[i] == str[0] {
+                var equal:Bool = true
+                for var j:Int = 1; j<str.length; j++ {
+                    equal = equal && (self[i+j] == str[j])
+                }
+                if equal {  return i  }
+                
+            }
+        }
+        
+        return -1
+    }
+
+    
     // MARK: - URL解码/编码
     
     /// 给URL解编码

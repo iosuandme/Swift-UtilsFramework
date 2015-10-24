@@ -96,11 +96,13 @@ struct Encrypt {
     func decodeJSON(encodeJSON:String, privateKey:String) -> String {
         let publicKeyChars  = Encrypt.bufferWithString(publicKey)
         let privateKeyChars = Encrypt.bufferWithString(privateKey)
-        var length = count(encodeJSON) + 1
+//        var length = count(encodeJSON) + 1
+        var length = encodeJSON.characters.count + 1
+
         var contentChars:[UInt8] = Array<UInt8>(count: length, repeatedValue: 0)
 
         var range = encodeJSON.startIndex..<encodeJSON.endIndex
-        if encodeJSON.getBytes(&contentChars, maxLength: contentChars.count, usedLength: &length, encoding: NSUTF8StringEncoding, options: NSStringEncodingConversionOptions.allZeros, range: range, remainingRange: &range) {
+        if encodeJSON.getBytes(&contentChars, maxLength: contentChars.count, usedLength: &length, encoding: NSUTF8StringEncoding, options: NSStringEncodingConversionOptions(), range: range, remainingRange: &range) {
             
             contentChars.removeRange(length..<contentChars.count)
             

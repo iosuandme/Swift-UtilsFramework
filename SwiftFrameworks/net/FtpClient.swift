@@ -16,7 +16,7 @@ func ==(lhs: FtpClient.Item, rhs: FtpClient.Item) -> Bool {
 class FtpClient :NSObject, NSStreamDelegate {
     
     // MARK: - 文件或目录数据结构
-    struct Item : Equatable, Printable {
+    struct Item : Equatable, CustomStringConvertible {
         
         var description: String { return toDictionary().description }
 
@@ -158,11 +158,11 @@ class FtpClient :NSObject, NSStreamDelegate {
         assert(aStream == _inputStream, "异常的接收数据流对象")
         switch eventCode {
         case NSStreamEvent.OpenCompleted:
-            println("打开链接[\(_url)]")
+            print("打开链接[\(_url)]")
         case NSStreamEvent.HasBytesAvailable:
             //println("已接收数据:\(_listData?.length)")
             let length = 32768
-            var buffer: UnsafeMutablePointer<UInt8> = UnsafeMutablePointer<UInt8>.alloc(length)
+            let buffer: UnsafeMutablePointer<UInt8> = UnsafeMutablePointer<UInt8>.alloc(length)
             //let size = sizeofValue(buffer)
             //println("size\(buffer.)")
             if let inputStream = _inputStream {
@@ -200,12 +200,12 @@ class FtpClient :NSObject, NSStreamDelegate {
             var newEntries:[[NSObject:AnyObject]] = []
             
             var offset:Int = 0
-            do {
+            repeat {
                 var thisEntry:Unmanaged<CFDictionaryRef>?
 
                 let length = listData.length - offset
 
-                var buffer:UnsafeMutablePointer<UInt8> = UnsafeMutablePointer<UInt8>.alloc(length)
+                let buffer:UnsafeMutablePointer<UInt8> = UnsafeMutablePointer<UInt8>.alloc(length)
                 listData.getBytes(buffer, range: NSMakeRange(offset, length))
                 
                 let bytesConsumed = CFFTPCreateParsedResourceListing(nil, buffer, CFIndex(length), &thisEntry)

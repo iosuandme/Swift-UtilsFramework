@@ -41,12 +41,12 @@ extension UIViewController {
         
         
         // Add semi overlay
-        var overlay = UIView(frame: target.bounds)
+        let overlay = UIView(frame: target.bounds)
         overlay.backgroundColor = UIColor.blackColor()
         
         // Take screenshot and scale
         UIGraphicsBeginImageContext(target.bounds.size);
-        target.layer.renderInContext(UIGraphicsGetCurrentContext())
+        target.layer.renderInContext(UIGraphicsGetCurrentContext()!)
         let image = UIGraphicsGetImageFromCurrentImageContext()
         let imageView = UIImageView(image: image)
         overlay.addSubview(imageView)
@@ -54,7 +54,7 @@ extension UIViewController {
         
         // Dismiss button
         // Don't use UITapGestureRecognizer to avoid complex handling
-        var dismissButton = UIButton(frame: dismissFrame)
+        let dismissButton = UIButton(frame: dismissFrame)
         let gesture = UIPanGestureRecognizer()
         dismissButton.addGestureRecognizer(gesture)
 
@@ -88,8 +88,8 @@ extension UIViewController {
         //if let viewController = topController.childViewControllers.last as? UIViewController {
             let topController = topViewController
             let target = topController.view
-            println("target:\(target)")
-            let overlay = target.subviews[target.subviews.count - 2] as! UIView
+            print("target:\(target)")
+            let overlay = target.subviews[target.subviews.count - 2] 
             let imageView = overlay.subviews.first as? UIImageView
             
             UIView.animateWithDuration(kNotificationModalAnimationDuration, animations: {

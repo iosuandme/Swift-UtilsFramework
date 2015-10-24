@@ -23,7 +23,7 @@ class UIViewEndEditOnClicked: UIView {
             
         }
 */
-        let mirror:MirrorType = view.getMirror()
+        let mirror:_MirrorType = view._getMirror()
 //        var count:UInt32 = 0
 //        let name:NSString = "123"
 //        let propertes = class_copyPropertyList(UIViewEndEditOnClicked.Type.self, &count)

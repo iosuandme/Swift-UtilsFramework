@@ -43,12 +43,12 @@ class UITextBox: UITextField {
     }
     
     required init(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
+        super.init(coder: aDecoder)!
         self.addTarget(self, action: Selector("editingChanged"), forControlEvents: UIControlEvents.EditingChanged);
     }
     
     func editingChanged() {
-        println("editingChanged:\(text)")
+        print("editingChanged:\(text)")
     }
     
     //获得焦点时高亮动画
@@ -85,7 +85,7 @@ class UITextBox: UITextField {
         super.willMoveToSuperview(newSuperview)
         if placeholderLabel == nil {
             let rect = super.placeholderRectForBounds(bounds)
-            var label = UILabel(frame: rect)
+            let label = UILabel(frame: rect)
             label.text = self.placeholder
             label.textColor = UIColor(white: 0.7, alpha: 1.0)
             label.font = self.font
@@ -104,7 +104,7 @@ class UITextBox: UITextField {
     override func placeholderRectForBounds(bounds: CGRect) -> CGRect {
         let rect = super.placeholderRectForBounds(bounds)
         if placeholderLabel == nil {
-            var label = UILabel(frame: rect)
+            let label = UILabel(frame: rect)
             label.textColor = UIColor(white: 0.7, alpha: 1.0)
             label.font = self.font
             placeholderLabel = label
@@ -112,7 +112,7 @@ class UITextBox: UITextField {
         }
         placeholderLabel.text = self.placeholder
         layoutPlaceholderLabel(rect,!isFirstResponder())
-        return CGRect.zeroRect
+        return CGRect.zero
     }
     
     

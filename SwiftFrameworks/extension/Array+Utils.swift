@@ -6,6 +6,20 @@
 
 import Foundation
 
+extension LazyMapCollection {
+    // 用指定分隔符 连接 数组元素 为 字符串
+    func componentsJoinedByString(separator: String) -> String {
+        var result = ""
+        for item:Element in self {
+            if !result.isEmpty {
+                result += separator
+            }
+            result += "\(item)"
+        }
+        return result
+    }
+}
+
 extension Array {
     
     // 过滤符合条件的数组元素
