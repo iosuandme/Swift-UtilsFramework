@@ -141,7 +141,7 @@ struct Encrypt {
             }
             print("随机密钥长度\(length)")
             // 0 ... 5     0 , 1 ,2 , 3 ,4
-            let randomKeyChars = contentChars[8...(length + 7)]
+            let randomKeyChars = Array(contentChars[8...(length + 7)])
             //var contents = contentChars[(length + 3)..<usedLength]
             contentChars.removeRange(0...(length + 7))
             
