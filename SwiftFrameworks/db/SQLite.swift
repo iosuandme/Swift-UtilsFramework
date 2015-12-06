@@ -45,7 +45,6 @@ protocol SQLiteResultSet : SQLiteBaseSet {
     func getString(columnName:String) -> String!
     func getData(columnName:String) -> NSData!
     func getDate(columnName:String) -> NSDate!
-    func getChar(columnName:String) -> UnicodeScalar!
 }
 
 // 绑定结果集
@@ -61,7 +60,7 @@ protocol SQLiteDataBase : CustomReflectable {
     static func tableColumnTypes() -> [(SQLColumnName, SQLColumnType, SQLColumnState)]
     
     func customMirror() -> Mirror
-    
+
 }
 
 extension SQLiteDataBase {
@@ -176,7 +175,7 @@ typealias SQLTableName = String
 class SQLite {
     
     typealias OnUpgradeFunc = (db:SQLiteHandle, oldVersion:Int, newVersion:Int) -> Bool
-    
+
     let version:UInt
     let path:String
     
@@ -240,15 +239,15 @@ class SQLite {
             }
         }
     }
-    
-    //    deinit{
-    //        println("SQLite 已释放")
-    //    }
+
+//    deinit{
+//        println("SQLite 已释放")
+//    }
     
 }
 
 // MARK: - 数据库操作句柄
-typealias SQLiteHandle = protocol<SQLiteBase, SQLiteCreate, SQLiteCreateIndex, SQLiteQueue, SQLiteUpdate, SQLiteDelete, SQLiteDeleteTable, SQLiteSelect, SQLiteInsert, SQLiteAlter, SQLiteVersion, SQLiteMove>
+typealias SQLiteHandle = protocol<SQLiteBase, SQLiteCreate, SQLiteCreateIndex, SQLiteQueue, SQLiteUpdate, SQLiteDelete, SQLiteSelect, SQLiteInsert, SQLiteAlter, SQLiteVersion, SQLiteMove>
 
 extension SQLite {
     class Handle {
@@ -257,7 +256,7 @@ extension SQLite {
         init(handle:COpaquePointer) {
             _handle = handle
         }
-        
+
         deinit {
             if _handle != nil {
                 sqlite3_close(_handle)
@@ -324,10 +323,10 @@ extension SQLite.Handle : SQLiteVersion {
         set {
             let error = execSQL("PRAGMA user_version = \(newValue)")
             #if DEBUG
-                assert(error == .OK, "set version error:\(error)")
+            assert(error == .OK, "set version error:\(error)")
             #endif
         }
-        
+
     }
 }
 
@@ -402,7 +401,7 @@ extension SQLite.Handle : SQLiteCreate {
         
         let params = T.tableColumnTypes()
         #if DEBUG
-            assert(params.count > 0, "模板类型没有返回表结构参数")
+        assert(params.count > 0, "模板类型没有返回表结构参数")
         #endif
         for (name, type, state) in params {
             if !paramString.isEmpty {
@@ -414,20 +413,20 @@ extension SQLite.Handle : SQLiteCreate {
         var count:UInt32 = 0
         let ivarList = class_copyIvarList(clsType, &count)
         for i in 0..<count {
-        let ivar = ivarList[Int(i)]
-        if let name = String.fromCString(ivar_getName(ivar)) {
-        if let (type,state) = clsType.tableColumnTypeWithProperty(name) {
-        if !paramString.isEmpty {
-        paramString += ", "
-        }
-        paramString += "\"\(name)\" \(type)\(state)"
-        }
-        }
+            let ivar = ivarList[Int(i)]
+            if let name = String.fromCString(ivar_getName(ivar)) {
+                if let (type,state) = clsType.tableColumnTypeWithProperty(name) {
+                    if !paramString.isEmpty {
+                        paramString += ", "
+                    }
+                    paramString += "\"\(name)\" \(type)\(state)"
+                }
+            }
         }
         */
         let sql = "CREATE TABLE IF NOT EXISTS \"\(tableName)\" (\(paramString))"
         return executeSQL(sql)
-        
+
     }
     
 }
@@ -496,44 +495,6 @@ extension SQLite.Handle : SQLiteDelete {
         return executeSQL("DELETE FROM \(tableName)")
     }
 }
-
-// MARK: - SQLiteProtocol 删除表
-protocol SQLiteDeleteTable {
-    func drop(tableName:String) -> Error
-    func drop(tableNames:[String]) -> Error
-}
-
-// MARK: - SQLiteHandle 删除表
-extension SQLite.Handle : SQLiteDeleteTable {
-    
-    func drop(tableName:String) -> Error {
-        return executeSQL("DROP TABLE \(tableName)")
-    }
-    
-    
-    func drop(tableNames:[String]) -> Error {
-        var isDroped:Bool = true
-        for tableName in tableNames {
-            if executeSQL("DROP TABLE \(tableName)") == .OK {
-                isDroped = isDroped && true
-            } else {
-                isDroped = isDroped && false
-            }
-        }
-        
-        if isDroped {
-            return .OK
-        } else {
-            let errorCode = sqlite3_errcode(_handle)
-            let errorDescription = String.fromCString(sqlite3_errmsg(_handle))
-            
-            return .Error(code:Int(errorCode), content:errorDescription ?? "", userInfo:nil)
-        }
-        
-    }
-    
-}
-
 
 // MARK: - SQLiteHandle 查询
 extension SQLite.Handle : SQLiteSelect {
@@ -606,7 +567,7 @@ extension SQLite.Handle : SQLiteInsert {
     func insertOrReplace(into tableName:String, values:Any...) -> Error {
         return insertValues(" OR REPLACE", into: tableName, values: values)
     }
-    
+
     // 单条插入部分字段
     func insertOrReplace(into tableName:String, params:[String:Any]) -> Error {
         var keyString = ""
@@ -622,27 +583,27 @@ extension SQLite.Handle : SQLiteInsert {
         let sql = "INSERT OR REPLACE INTO \(tableName) (\(keyString)) values(\(valueString))"
         return executeSQL(sql)
     }
-    /*
+/*
     private func getValue<T>(valueMirror:MirrorType, nilReplaceTo defaultValue:T?) -> T? {
-    var value:T? = nil
-    if valueMirror.disposition == .Optional {
-    if valueMirror.count > 0 {
-    value = valueMirror[0].1.value as? T
-    } else {
-    value = defaultValue
+        var value:T? = nil
+        if valueMirror.disposition == .Optional {
+            if valueMirror.count > 0 {
+                value = valueMirror[0].1.value as? T
+            } else {
+                value = defaultValue
+            }
+        } else {
+            value = valueMirror.value as? T
+        }
+        return value
     }
-    } else {
-    value = valueMirror.value as? T
-    }
-    return value
-    }
-    */
+*/
     
     func insertOrReplace<T : SQLiteDataBase>(into tableName:String, rows:[T]) -> Error {
         let params = T.tableColumnTypes()
         var columns:[String] = []
         #if DEBUG
-            assert(params.count > 0, "模板类型没有返回表结构参数")
+        assert(params.count > 0, "模板类型没有返回表结构参数")
         #endif
         var keyString = ""
         var valueString = ""
@@ -664,7 +625,7 @@ extension SQLite.Handle : SQLiteInsert {
         
         var error:Error = .OK
         var hasError = false
-        
+
         let SQL = "INSERT OR REPLACE INTO \(tableName) (\(keyString)) values(\(valueString))"
         if let rs:SQLiteBindSet = querySQL(SQL) as! SQLite.RowSet? {
             //let length = rs.bindCount
@@ -682,7 +643,7 @@ extension SQLite.Handle : SQLiteInsert {
                         }
                     }
                     #if DEBUG
-                        assert(flag == SQLITE_OK, "绑定[\(key)]失败 value=\(row)")
+                    assert(flag == SQLITE_OK, "绑定[\(key)]失败 value=\(row)")
                     #endif
                     if flag != SQLITE_OK {
                         error = lastError //String.fromCString(sqlite3_errmsg(handle))
@@ -694,9 +655,9 @@ extension SQLite.Handle : SQLiteInsert {
                     let result = rs.step
                     
                     #if DEBUG
-                        assert(result == SQLITE_OK || result == SQLITE_DONE, "严重错误并回滚操作,绑定失败\(row)")
+                    assert(result == SQLITE_OK || result == SQLITE_DONE, "严重错误并回滚操作,绑定失败\(row)")
                     #endif
-                    
+
                     if result != SQLITE_OK && result != SQLITE_DONE {
                         hasError = true
                         error = lastError
@@ -745,11 +706,11 @@ extension SQLite.Handle : SQLiteInsert {
                     let key = columns[index-1]
                     flag = rs.bindValue(params[key], index: index)
                     #if DEBUG
-                        assert(flag == SQLITE_OK, "绑定[\(key)]失败 value=\(params[key])")
+                    assert(flag == SQLITE_OK, "绑定[\(key)]失败 value=\(params[key])")
                     #endif
-                    
+
                     if flag != SQLITE_OK {
-                        error = lastError
+                        error = lastError 
                         //println("错误并跳过本组数据,因为给字段[\(key)]绑定值[\(values)]失败 ERROR \(error)")
                         break;
                     }
@@ -757,7 +718,7 @@ extension SQLite.Handle : SQLiteInsert {
                 if flag == SQLITE_OK {
                     let result = rs.step
                     #if DEBUG
-                        assert(result == SQLITE_OK || result == SQLITE_DONE, "严重错误并回滚操作,绑定失败\(params)")
+                    assert(result == SQLITE_OK || result == SQLITE_DONE, "严重错误并回滚操作,绑定失败\(params)")
                     #endif
                     if result != SQLITE_OK && result != SQLITE_DONE {
                         hasError = true
@@ -778,7 +739,7 @@ extension SQLite.Handle : SQLiteInsert {
         hasError ? rollbackTransaction() : commitTransaction()
         return error
     }
-    
+
 }
 
 // MARK: - SQLiteResultSet
@@ -812,7 +773,7 @@ extension SQLite.RowSet : SQLiteBindSet {
     var bindCount:CInt {
         return sqlite3_bind_parameter_count(_stmt)
     }
-    
+
     func bindClear() -> CInt {
         return sqlite3_clear_bindings(_stmt)
     }
@@ -902,7 +863,7 @@ extension SQLite.RowSet : SQLiteResultSet {
         }
         return 0
     }
-    
+
     func getDictionary() -> [String:Any] {
         var dict:[String:Any] = [:]
         for i in 0..<columns.count {
@@ -931,15 +892,15 @@ extension SQLite.RowSet : SQLiteResultSet {
                 break           //什么都不执行
             }
             dict[key] = value
-            //            //如果出现重名则
-            //            if i != columnNames.indexOfObject(key) {
-            //                //取变量类型
-            //                //let tableName = String.fromCString(sqlite3_column_table_name(stmt, index))
-            //                //dict["\(tableName).\(key)"] = value
-            //                dict["\(key).\(i)"] = value
-            //            } else {
-            //                dict[key] = value
-            //            }
+//            //如果出现重名则
+//            if i != columnNames.indexOfObject(key) {
+//                //取变量类型
+//                //let tableName = String.fromCString(sqlite3_column_table_name(stmt, index))
+//                //dict["\(tableName).\(key)"] = value
+//                dict["\(key).\(i)"] = value
+//            } else {
+//                dict[key] = value
+//            }
         }
         
         return dict
@@ -951,16 +912,13 @@ extension SQLite.RowSet : SQLiteResultSet {
         return Int(getInt64(columnName))
     }
     func getInt64(columnName:String) -> Int64 {
-        let index = columns.indexOf { $0 == columnName }
-        //CInt(columnNames.indexOfObject(columnName))
-        if index == NSNotFound {
+        guard let index = columns.indexOf({ $0 == columnName }) else {
             return 0
         }
         return Int64(sqlite3_column_int64(_stmt, CInt(index)))
     }
     func getDouble(columnName:String) -> Double {
-        let index = columns.indexOf { $0 == columnName }
-        if index == NSNotFound {
+        guard let index = columns.indexOf({ $0 == columnName }) else {
             return 0
         }
         return Double(sqlite3_column_double(_stmt, CInt(index)))
@@ -969,32 +927,22 @@ extension SQLite.RowSet : SQLiteResultSet {
         return Float(getDouble(columnName))
     }
     func getString(columnName:String) -> String! {
-        let index = columns.indexOf { $0 == columnName }
-        if index == NSNotFound {
+        guard let index = columns.indexOf({ $0 == columnName }) else {
             return nil
         }
         let result = sqlite3_column_text(_stmt, CInt(index))
         return String.fromCString(UnsafePointer<CChar>(result))
     }
     func getData(columnName:String) -> NSData! {
-        let index = columns.indexOf { $0 == columnName }
-        if index == NSNotFound {
+        guard let index = columns.indexOf({ $0 == columnName }) else {
             return nil
         }
         let data:UnsafePointer<Void> = sqlite3_column_blob(_stmt, CInt(index))
         let size:CInt = sqlite3_column_bytes(_stmt, CInt(index))
         return NSData(bytes:data, length: Int(size))
     }
-    
-    func getChar(columnName:String) -> UnicodeScalar! {
-        let result = getString(columnName)
-        return result?.unicodeScalars[0]
-    }
-
-    
     func getDate(columnName:String) -> NSDate! {
-        let index = columns.indexOf { $0 == columnName }
-        if index == NSNotFound {
+        guard let index = columns.indexOf({ $0 == columnName }) else {
             return nil
         }
         let columnType = sqlite3_column_type(_stmt, CInt(index))
@@ -1044,8 +992,8 @@ enum SQLColumnState : Int, CustomStringConvertible {
             return " NOT NULL"
         case .Unique :
             return " UNIQUE"
-            //case .ForeignKey :
-            //    return " FOREIGN KEY"
+        //case .ForeignKey :
+        //    return " FOREIGN KEY"
         case .Check :
             return " CHECK"
         default :
@@ -1065,8 +1013,8 @@ enum SQLColumnState : Int, CustomStringConvertible {
             return false
         case .Unique :
             return false
-            //case .ForeignKey :
-            //    return false
+        //case .ForeignKey :
+        //    return false
         case .Check :
             return false
         default :

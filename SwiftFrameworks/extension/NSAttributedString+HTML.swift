@@ -5,10 +5,80 @@
 //  Created by 李招利 on 14/7/15.
 //  Copyright (c) 2014年 长春金天宇文化传播有限公司. All rights reserved.
 //
-
+#if os (iOS)
 import UIKit
+#elseif os (OSX)
+import Cocoa
+#endif
+
+extension NSMutableAttributedString {
+    
+    func insertAttachmentCell(cell:NSTextAttachmentCellProtocol, atIndex index:Int) {
+        insertAttributedString(NSAttributedString(attachmentCell: cell), atIndex: index)
+    }
+    
+    func appendAttachmentCell(cell:NSTextAttachmentCellProtocol) {
+        appendAttributedString(NSAttributedString(attachmentCell: cell))
+    }
+}
 
 extension NSAttributedString {
+    
+    func htmlFromRange(range:NSRange, defaultFontSize:CGFloat = 18) -> String {
+        var longestRange:NSRange = NSRange()
+        var html:String = ""
+        var location = range.location
+        while location < range.length + range.location {
+            let dict = attributesAtIndex(location, longestEffectiveRange: &longestRange, inRange: range)
+            location += longestRange.length
+            if let attachment = (dict["NSAttachment"] as? NSTextAttachment) {
+                print(attachment.fileWrapper)
+                let fileName = attachment.fileWrapper?.filename ?? "name.png"
+                html += "<IMG src='images/\(fileName)'/>"
+            } else if let num = (dict["NSSuperScript"] as? NSNumber)?.integerValue {
+                let tag = num > 0 ? "SUP" : "SUB"
+                let subString = attributedSubstringFromRange(longestRange).string
+                html += "<\(tag)>\(subString)</\(tag)>"
+            } else if let _ = (dict["NSUnderline"] as? NSNumber)?.integerValue {
+                let subString = attributedSubstringFromRange(longestRange).string
+                html += "<U>\(subString)</U>"
+            } else {
+                let font = dict["NSFont"] as! NSFont
+                var subString = attributedSubstringFromRange(longestRange).string
+                
+                let fontTrait = NSFontManager.sharedFontManager().traitsOfFont(font) //NSFontTraitMask(rawValue: UInt(font.fontDescriptor.symbolicTraits))
+                //print("fontTrait:\(font.italicAngle)")
+                if fontTrait.contains(.BoldFontMask) {
+                    subString = "<B>\(subString)</B>"
+                }
+                if fontTrait.contains(.ItalicFontMask) {
+                    subString = "<I>\(subString)</I>"
+                }
+
+                //let color = dict["NSColor"] as? NSColor
+                //let
+                //print("fontSize:\(font.pointSize)")
+                if font.pointSize != defaultFontSize {
+                    let size = " size=\(font.pointSize)"
+                    html += "<FONT\(size)>\(subString)</FONT>"
+                } else {
+                    html += subString
+                }
+            }
+            //print("range:\(longestRange) dict:\(dict) ")
+        }
+        print("html:\(html)")
+        return html.trim().stringByReplacingOccurrencesOfString("\n", withString: "<br/>")
+    }
+    
+    convenience init(attachmentCell:NSTextAttachmentCellProtocol) {
+        let text:NSTextAttachment = NSTextAttachment()
+        text.attachmentCell = attachmentCell
+        self.init(attachment:text)
+    }
+    
+    
+    #if os (iOS)
     
     func boundingRectWithSize(size: CGSize, defaultFont:UIFont = UIFont.systemFontOfSize(16), lineBreakMode:NSLineBreakMode = .ByWordWrapping) -> CGSize {
         let label:UILabel = UILabel()
@@ -19,7 +89,16 @@ extension NSAttributedString {
         return label.sizeThatFits(size)
     }
     
-    convenience init(HTML:String, defaultFontSize size:CGFloat, imageFactory:((imageURL:String) -> UIImage?)?) {
+    typealias Image = UIImage
+    typealias Font = UIFont
+
+    #elseif os (OSX)
+    typealias Image = NSImage
+    typealias Font = NSFont
+
+    #endif
+
+    convenience init(HTML:String, defaultFontSize size:CGFloat, imageFactory:((imageURL:String) -> Image?)?) {
         let html:NSString = HTML
         var attrString = NSMutableAttributedString(string: "")
         do {
@@ -87,7 +166,7 @@ extension NSAttributedString {
                 content += text
             }
             
-            attrString = NSMutableAttributedString(string: content, attributes: [NSFontAttributeName:UIFont.systemFontOfSize(size)])
+            attrString = NSMutableAttributedString(string: content, attributes: [NSFontAttributeName:Font.systemFontOfSize(size)])
 
             while elements.count > 0 {
                 let element = elements.removeAtIndex(0)
@@ -102,9 +181,11 @@ extension NSAttributedString {
                     attrString.replaceCharactersInRange(NSMakeRange(tmplocation, 0), withString: "\n\n")
                     NSAttributedStringHTML.HTMLElement.changeElementOffset(2, withLoacaton: tmplocation, inElements: &elements)
                 case .B :
-                    attrString.addAttribute(NSFontAttributeName, value: UIFont.boldSystemFontOfSize(size), range: range)
+                    attrString.addAttribute(NSFontAttributeName, value: Font.boldSystemFontOfSize(size), range: range)
                 case .I :
-                    attrString.addAttribute(NSFontAttributeName, value: UIFont.italicSystemFontOfSize(size), range: range)
+                    let family = Font.systemFontOfSize(size).familyName!
+                    let font = NSFontManager.sharedFontManager().fontWithFamily(family, traits: .ItalicFontMask, weight: 0, size: size)!
+                    attrString.addAttribute(NSFontAttributeName, value: font, range: range)
                 case .U :
                     attrString.addAttribute(NSUnderlineStyleAttributeName, value: 1, range: range)
                 case let .A (href, _, _) :
@@ -114,7 +195,7 @@ extension NSAttributedString {
                     NSAttributedStringHTML.HTMLElement.changeElementOffset(1, withLoacaton: range.location, inElements: &elements)
                 case .Hn (let htmlSize) :
                     let fontSize = NSAttributedStringHTML.HTMLElement.HTMLSizeToFontSize(htmlSize)
-                    attrString.addAttributes([NSFontAttributeName:UIFont.boldSystemFontOfSize(fontSize),NSParagraphStyleAttributeName:NSParagraphStyle()], range: range)
+                    attrString.addAttributes([NSFontAttributeName:Font.boldSystemFontOfSize(fontSize),NSParagraphStyleAttributeName:NSParagraphStyle()], range: range)
                     attrString.replaceCharactersInRange(NSMakeRange(range.location, 0), withString: "\n")
                     NSAttributedStringHTML.HTMLElement.changeElementOffset(1, withLoacaton: range.location, inElements: &elements)
                     let tmplocation = range.location + range.length + 1
@@ -123,26 +204,43 @@ extension NSAttributedString {
                 case .LI :
                     break
                 case .SUB :
-                    attrString.addAttributes(["NSSuperScript":NSNumber(int: -1), NSFontAttributeName:UIFont.systemFontOfSize(9.0)], range: range)
+                    attrString.addAttributes(["NSSuperScript":NSNumber(int: -1), NSFontAttributeName:Font.systemFontOfSize(size)], range: range)
                 case .SUP :
-                    attrString.addAttributes(["NSSuperScript":NSNumber(int: 1), NSFontAttributeName:UIFont.systemFontOfSize(9.0)], range: range)
+                    attrString.addAttributes(["NSSuperScript":NSNumber(int: 1), NSFontAttributeName:Font.systemFontOfSize(size)], range: range)
                 case let .IMG(src, alt) :
-                    if let image = imageFactory?(imageURL: src) {                //如果能取到图片
-                        let attachment = NSTextAttachment(data: nil, ofType: nil)
-                        attachment.image = image
+                    if let fileWrapper = try? NSFileWrapper(URL: NSURL(fileURLWithPath: "/Users/bujiandi/Documents/274.qmt/\(src)"), options: .Immediate) {
+                        let attachment = NSTextAttachment(fileWrapper: fileWrapper)
                         attrString.replaceCharactersInRange(range, withAttributedString: NSAttributedString(attachment: attachment))
-                        NSAttributedStringHTML.HTMLElement.changeElementOffset(1-range.length, withLoacaton: range.location + 1, inElements: &elements)
-                        
-                        if image.size.width > 40 || image.size.height > 40 {
-                            attrString.replaceCharactersInRange(NSMakeRange(range.location, 0), withString: "\n")
-                            NSAttributedStringHTML.HTMLElement.changeElementOffset(1, withLoacaton: range.location, inElements: &elements)
-                        }
-                    } else {                                                    //如果取不到图片
+                        NSAttributedStringHTML.HTMLElement.changeElementOffset(1, withLoacaton: range.location, inElements: &elements)
+                    } else {
                         if let str:NSString = alt {
                             attrString.replaceCharactersInRange(NSMakeRange(range.location, 0), withString: alt)
                             NSAttributedStringHTML.HTMLElement.changeElementOffset(str.length, withLoacaton: range.location, inElements: &elements)
                         }
                     }
+                    
+//                    if let image = imageFactory?(imageURL: src) {                //如果能取到图片
+//                        if #available(OSX 10.11, *) {
+//                            let attachment = NSTextAttachment(data: nil, ofType: nil)
+//                            attachment.image = image
+//                            attrString.replaceCharactersInRange(range, withAttributedString: NSAttributedString(attachment: attachment))
+//                        } else {
+//                            
+//                            // Fallback on earlier versions
+//                        }
+//                        
+//                        NSAttributedStringHTML.HTMLElement.changeElementOffset(1-range.length, withLoacaton: range.location + 1, inElements: &elements)
+//                        
+//                        if image.size.width > 40 || image.size.height > 40 {
+//                            attrString.replaceCharactersInRange(NSMakeRange(range.location, 0), withString: "\n")
+//                            NSAttributedStringHTML.HTMLElement.changeElementOffset(1, withLoacaton: range.location, inElements: &elements)
+//                        }
+//                    } else {                                                    //如果取不到图片
+//                        if let str:NSString = alt {
+//                            attrString.replaceCharactersInRange(NSMakeRange(range.location, 0), withString: alt)
+//                            NSAttributedStringHTML.HTMLElement.changeElementOffset(str.length, withLoacaton: range.location, inElements: &elements)
+//                        }
+//                    }
 
                 default :
 
