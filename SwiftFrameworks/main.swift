@@ -18,51 +18,10 @@ for var i:Int = 0; i<data.length; i++ {
 }
 
 let home = NSHomeDirectory()
-let dir = home.stringByAppendingPathComponent("Wunderlist")
+let dir = (home as NSString).stringByAppendingPathComponent("Wunderlist")
 //println(dir)
 
 
-
-func searchData(data:NSData, chars:[Int8]) -> Bool {
-    let bytes:UnsafePointer<Int8> = UnsafePointer<Int8>(data.bytes)
-    
-    for var i:Int = 0; i<data.length - chars.count; i++ {
-        if bytes[i] == chars[0] {
-            var isSame = true
-            for var j:Int = 1; j<chars.count; j++ {
-                isSame &= (bytes[i + j] == chars[j])
-            }
-            if isSame { return true }
-        }
-    }
-    return false
-}
-
-func showDir(path:String) {
-    var fileManager = NSFileManager.defaultManager()
-    if let array = fileManager.contentsOfDirectoryAtPath(path, error: nil) {
-        for item in array {
-            let filePath = "\(path)/\(item)"
-            if let data:NSData = fileManager.contentsAtPath(filePath) {
-                if searchData(data, chars) { println(filePath) }
-            }
-            //println(filePath)
-        }
-    } else {
-        println("目录空:\(path)")
-    }
-}
-
-showDir(dir)
-
-
-
-for var i:Int = 0 ; i<str.length; i++ {
-    let char = str.unicodeScalars[i]
-    
-    print(" \(char.value.toHex())")
-}
-println()
 /*
 let r = String(format: "数量%.2f", 0.5567)
 println(r)

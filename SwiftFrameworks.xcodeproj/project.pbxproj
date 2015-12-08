@@ -10,14 +10,12 @@
 		186EA6EF19D998EE0097370C /* Date.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186EA6EE19D998EE0097370C /* Date.swift */; };
 		186EA6F119D999020097370C /* Error.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186EA6F019D999020097370C /* Error.swift */; };
 		186EB24219C1655700FAA251 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186EB24119C1655700FAA251 /* main.swift */; };
-		186EB24919C1657400FAA251 /* libsqlite3.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 186EB24819C1657400FAA251 /* libsqlite3.0.dylib */; };
 		186EB25319C17FE200FAA251 /* SQLite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186EB25219C17FE200FAA251 /* SQLite.swift */; };
-		18900C4519DBDF2700A00FAA /* String+Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18900C4419DBDF2700A00FAA /* String+Utils.swift */; };
-		18CE332419DF91D20024A0E6 /* Array+Utils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18CE332319DF91D20024A0E6 /* Array+Utils.swift */; };
-		394A097F1A1C1EE000308935 /* IntegerHexabled.swift in Sources */ = {isa = PBXBuildFile; fileRef = 394A097E1A1C1EE000308935 /* IntegerHexabled.swift */; };
-		39944D671A19E7550007C010 /* JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39944D661A19E7550007C010 /* JSON.swift */; };
+		3920946C1C15AC0B0090CF59 /* libsqlite3.0.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3920946B1C15AC0B0090CF59 /* libsqlite3.0.tbd */; };
+		392094701C15B4010090CF59 /* Array+Util.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3920946D1C15B4010090CF59 /* Array+Util.swift */; };
+		392094711C15B4010090CF59 /* String+JSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3920946E1C15B4010090CF59 /* String+JSON.swift */; };
+		392094721C15B4010090CF59 /* String+Util.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3920946F1C15B4010090CF59 /* String+Util.swift */; };
 		39944D691A19E8A10007C010 /* Encrypt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39944D681A19E8A10007C010 /* Encrypt.swift */; };
-		39974F9B1A1EE0F3008243FC /* UIColor+Hexabled.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39974F9A1A1EE0F3008243FC /* UIColor+Hexabled.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -38,16 +36,14 @@
 		186EA6F019D999020097370C /* Error.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Error.swift; path = value/Error.swift; sourceTree = "<group>"; };
 		186EB23E19C1655700FAA251 /* SwiftFrameworks */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SwiftFrameworks; sourceTree = BUILT_PRODUCTS_DIR; };
 		186EB24119C1655700FAA251 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
-		186EB24819C1657400FAA251 /* libsqlite3.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.0.dylib; path = usr/lib/libsqlite3.0.dylib; sourceTree = SDKROOT; };
 		186EB24D19C165C300FAA251 /* SwiftFrameworks-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SwiftFrameworks-Bridging-Header.h"; sourceTree = "<group>"; };
 		186EB25119C1673800FAA251 /* OS_X.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = OS_X.playground; sourceTree = "<group>"; };
 		186EB25219C17FE200FAA251 /* SQLite.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SQLite.swift; path = db/SQLite.swift; sourceTree = "<group>"; };
-		18900C4419DBDF2700A00FAA /* String+Utils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "String+Utils.swift"; path = "extension/String+Utils.swift"; sourceTree = "<group>"; };
-		18CE332319DF91D20024A0E6 /* Array+Utils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Array+Utils.swift"; path = "extension/Array+Utils.swift"; sourceTree = "<group>"; };
-		394A097E1A1C1EE000308935 /* IntegerHexabled.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = IntegerHexabled.swift; path = extension/IntegerHexabled.swift; sourceTree = "<group>"; };
-		39944D661A19E7550007C010 /* JSON.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = JSON.swift; path = db/JSON.swift; sourceTree = "<group>"; };
+		3920946B1C15AC0B0090CF59 /* libsqlite3.0.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.0.tbd; path = usr/lib/libsqlite3.0.tbd; sourceTree = SDKROOT; };
+		3920946D1C15B4010090CF59 /* Array+Util.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "Array+Util.swift"; path = "extension/Array+Util.swift"; sourceTree = "<group>"; };
+		3920946E1C15B4010090CF59 /* String+JSON.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "String+JSON.swift"; path = "extension/String+JSON.swift"; sourceTree = "<group>"; };
+		3920946F1C15B4010090CF59 /* String+Util.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "String+Util.swift"; path = "extension/String+Util.swift"; sourceTree = "<group>"; };
 		39944D681A19E8A10007C010 /* Encrypt.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Encrypt.swift; path = db/Encrypt.swift; sourceTree = "<group>"; };
-		39974F9A1A1EE0F3008243FC /* UIColor+Hexabled.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = "UIColor+Hexabled.swift"; path = "extension/UIColor+Hexabled.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,7 +51,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				186EB24919C1657400FAA251 /* libsqlite3.0.dylib in Frameworks */,
+				3920946C1C15AC0B0090CF59 /* libsqlite3.0.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,10 +61,9 @@
 		186EA6ED19D998DA0097370C /* value */ = {
 			isa = PBXGroup;
 			children = (
-				18900C4419DBDF2700A00FAA /* String+Utils.swift */,
-				18CE332319DF91D20024A0E6 /* Array+Utils.swift */,
-				394A097E1A1C1EE000308935 /* IntegerHexabled.swift */,
-				39974F9A1A1EE0F3008243FC /* UIColor+Hexabled.swift */,
+				3920946D1C15B4010090CF59 /* Array+Util.swift */,
+				3920946E1C15B4010090CF59 /* String+JSON.swift */,
+				3920946F1C15B4010090CF59 /* String+Util.swift */,
 				186EA6EE19D998EE0097370C /* Date.swift */,
 				186EA6F019D999020097370C /* Error.swift */,
 			);
@@ -109,7 +104,6 @@
 		186EB24A19C1657900FAA251 /* db */ = {
 			isa = PBXGroup;
 			children = (
-				39944D661A19E7550007C010 /* JSON.swift */,
 				39944D681A19E8A10007C010 /* Encrypt.swift */,
 				186EB25219C17FE200FAA251 /* SQLite.swift */,
 			);
@@ -126,7 +120,7 @@
 		186EB24C19C1658600FAA251 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				186EB24819C1657400FAA251 /* libsqlite3.0.dylib */,
+				3920946B1C15AC0B0090CF59 /* libsqlite3.0.tbd */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -157,6 +151,7 @@
 		186EB23619C1655700FAA251 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				LastSwiftUpdateCheck = 0710;
 				LastUpgradeCheck = 0600;
 				ORGANIZATIONNAME = "慧趣工作室";
 				TargetAttributes = {
@@ -187,16 +182,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				18900C4519DBDF2700A00FAA /* String+Utils.swift in Sources */,
-				394A097F1A1C1EE000308935 /* IntegerHexabled.swift in Sources */,
-				39944D671A19E7550007C010 /* JSON.swift in Sources */,
-				18CE332419DF91D20024A0E6 /* Array+Utils.swift in Sources */,
+				392094711C15B4010090CF59 /* String+JSON.swift in Sources */,
 				186EA6F119D999020097370C /* Error.swift in Sources */,
+				392094721C15B4010090CF59 /* String+Util.swift in Sources */,
 				186EB24219C1655700FAA251 /* main.swift in Sources */,
 				39944D691A19E8A10007C010 /* Encrypt.swift in Sources */,
 				186EA6EF19D998EE0097370C /* Date.swift in Sources */,
-				39974F9B1A1EE0F3008243FC /* UIColor+Hexabled.swift in Sources */,
 				186EB25319C17FE200FAA251 /* SQLite.swift in Sources */,
+				392094701C15B4010090CF59 /* Array+Util.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

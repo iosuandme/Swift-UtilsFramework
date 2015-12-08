@@ -1,47 +1,47 @@
 
 #if os(iOS)
-    import UIKit
-    #elseif os(OSX)
-    import Foundation
+import UIKit
+#elseif os(OSX)
+import Foundation
 #endif
 
 extension String {
     
     
-    //    // create a static method to get a swift class for a string name
-    //    public class func swiftClassFromString(className: String) -> AnyClass! {
-    //        // get the project name
-    //        if  var appName: String = NSBundle.mainBundle().objectForInfoDictionaryKey("CFBundleName") as? String {
-    //            // generate the full name of your class (take a look into your "YourProject-swift.h" file)
-    //            let classStringName = "_TtC\(appName.utf16count)\(appName)\(className.length)\(className)"
-    //            // return the class!
-    //            return NSClassFromString(classStringName)
-    //        }
-    //        return nil
-    //    }
+//    // create a static method to get a swift class for a string name
+//    public class func swiftClassFromString(className: String) -> AnyClass! {
+//        // get the project name
+//        if  var appName: String = NSBundle.mainBundle().objectForInfoDictionaryKey("CFBundleName") as? String {
+//            // generate the full name of your class (take a look into your "YourProject-swift.h" file)
+//            let classStringName = "_TtC\(appName.utf16count)\(appName)\(className.length)\(className)"
+//            // return the class!
+//            return NSClassFromString(classStringName)
+//        }
+//        return nil
+//    }
     // MARK: - 取类型名
     public static func typeNameFromClass(aClass:AnyClass) -> String {
         let name = NSStringFromClass(aClass)
         let demangleName = _stdlib_demangleName(name)
         return demangleName.componentsSeparatedByString(".").last!
     }
-    
-    //    static func typeNameFromAny(thing:Any) -> String {
-    //        let name = _stdlib_getTypeName(thing)
-    //        let demangleName = _stdlib_demangleName(name)
-    //        return demangleName.componentsSeparatedByString(".").last!
-    //    }
+
+//    static func typeNameFromAny(thing:Any) -> String {
+//        let name = _stdlib_getTypeName(thing)
+//        let demangleName = _stdlib_demangleName(name)
+//        return demangleName.componentsSeparatedByString(".").last!
+//    }
     
     // MARK: - 取大小
     #if os(iOS)
-    //    func boundingRectWithSize(size: CGSize, defaultFont:UIFont = UIFont.systemFontOfSize(16), lineBreakMode:NSLineBreakMode = .ByWordWrapping) -> CGSize {
-    //        var label:UILabel = UILabel()
-    //        label.lineBreakMode = lineBreakMode
-    //        label.font = defaultFont
-    //        label.numberOfLines = 0
-    //        label.text = self
-    //        return label.sizeThatFits(size)
-    //    }
+//    func boundingRectWithSize(size: CGSize, defaultFont:UIFont = UIFont.systemFontOfSize(16), lineBreakMode:NSLineBreakMode = .ByWordWrapping) -> CGSize {
+//        var label:UILabel = UILabel()
+//        label.lineBreakMode = lineBreakMode
+//        label.font = defaultFont
+//        label.numberOfLines = 0
+//        label.text = self
+//        return label.sizeThatFits(size)
+//    }
     #endif
     
     // MARK: - 取路径末尾文件名
@@ -80,9 +80,9 @@ extension String {
         insert(newElement, atIndex: startIndex.advancedBy(i)) //advance(self.startIndex,i))
     }
     
-    //    public mutating func splice<S : CollectionType where S.Generator.Element == Character>(newElements: S, atIndex i:Int) {
-    //        splice(newElements, atIndex: startIndex.advancedBy(i)) //advance(self.startIndex,i))
-    //    }
+//    public mutating func splice<S : CollectionType where S.Generator.Element == Character>(newElements: S, atIndex i:Int) {
+//        splice(newElements, atIndex: startIndex.advancedBy(i)) //advance(self.startIndex,i))
+//    }
     
     public mutating func replaceRange(subRange: Range<Int>, with newValues: String) {
         let start = startIndex.advancedBy(subRange.startIndex) //advance(self.startIndex, range.startIndex)
@@ -108,29 +108,13 @@ extension String {
         return self.componentsSeparatedByCharactersInSet(NSCharacterSet(charactersInString: separators))
     }
     
-    // MARK: - 字符串查找
-    func indexOf(str:String) -> Int {
-        for var i:Int = 0; i<self.length - str.length; i++ {
-            if self[i] == str[0] {
-                var equal:Bool = true
-                for var j:Int = 1; j<str.length; j++ {
-                    equal = equal && (self[i+j] == str[j])
-                }
-                if equal {  return i  }
-                
-            }
-        }
-        
-        return -1
-    }
-
-    
     // MARK: - URL解码/编码
     
     /// 给URL解编码
     public func decodeURL() -> String! {
-        let str:NSString = self
-        return str.stringByReplacingPercentEscapesUsingEncoding(NSUTF8StringEncoding)
+        //let str:NSString = self
+        //return str.stringByReplacingPercentEscapesUsingEncoding(NSUTF8StringEncoding)
+        return self.stringByRemovingPercentEncoding
     }
     
     /// 给URL编码
@@ -191,6 +175,10 @@ extension String {
             }
         }
         return ""
+    }
+    
+    public func joinIn(prefix:String, _ suffix:String) -> String {
+        return "\(prefix)\(self)\(suffix)"
     }
 }
 
