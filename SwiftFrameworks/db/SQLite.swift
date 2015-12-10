@@ -45,6 +45,17 @@ protocol SQLiteResultSet : SQLiteBaseSet {
     func getString(columnName:String) -> String!
     func getData(columnName:String) -> NSData!
     func getDate(columnName:String) -> NSDate!
+    
+    func getInt64(columnIndex:Int) -> Int64
+    func getUInt64(columnIndex:Int) -> UInt64
+    func getInt32(columnIndex:Int) -> Int32
+    func getUInt32(columnIndex:Int) -> UInt32
+    func getInt(columnIndex:Int) -> Int
+    func getUInt(columnIndex:Int) -> UInt
+    func getBool(columnIndex:Int) -> Bool
+    func getFloat(columnIndex:Int) -> Float
+    func getDouble(columnIndex:Int) -> Double
+    func getString(columnIndex:Int) -> String!
 }
 
 // 绑定结果集
@@ -132,7 +143,7 @@ protocol SQLiteQueue {
 protocol SQLiteCreate {
 
     // 通过一个
-    func createTableIfNotExists(tableName:String, params:[SQLColumn]) throws
+    //func createTableIfNotExists(tableName:String, params:[SQLColumn]) throws
     func createTableIfNotExists(tableName:String, params:[SQLiteColumn]) throws
 
 //    // 通过一个类来创建表 类必须实现 SQLiteDataBase 协议 (推荐)
@@ -146,8 +157,12 @@ protocol SQLiteUpdate {
 
 // MARK: - SQLiteProtocol 增加
 protocol SQLiteInsert {
-    func insert(or:String?, into tableName:String, columns:[String]?) throws -> (columns:[String], bindSet:SQLiteBindSet)
+    func insert(or:String?, into tableName:String, columns:[String]?) throws -> (columns:[SQLite.Column], bindSet:SQLiteBindSet)
     // 单条插入全部字段
+//    func insert(into tableName:String, values:Any...) throws -> Int
+//    func insertOrReplace(into tableName:String, values:Any...) throws -> Int
+//    func insertOrIgnore(into tableName:String, values:Any...) throws -> Int
+
     func insert(into tableName:String, columns:[String]?, values:Any...) throws -> Int
     func insertOrReplace(into tableName:String, columns:[String]?, values:Any...) throws -> Int
     func insertOrIgnore(into tableName:String, columns:[String]?, values:Any...) throws -> Int
@@ -179,8 +194,8 @@ protocol SQLiteSelect {
 typealias SQLColumnName = String
 typealias SQLTableName = String
 typealias SQLColumnDefault = String?
-typealias SQLColumn = (SQLColumnName,SQLColumnType,SQLColumnOptions,SQLColumnDefault)
-typealias SQLiteColumn = (SQLColumnName,SQLiteColumnType,SQLColumnOptions,SQLColumnDefault)
+//typealias SQLColumn = (SQLColumnName,SQLColumnType,SQLColumnOptions,SQLColumnDefault)
+typealias SQLiteColumn = (SQLColumnName,SQLColumnType,SQLColumnOptions,SQLColumnDefault)
 
 // MARK: - SQLite 主函数
 class SQLite {
@@ -305,6 +320,20 @@ extension SQLite.Handle : SQLiteBase {
         return SQLite.RowSet(stmt);
     }
     
+    func tableInfo(tableName:String) -> [SQLite.Column] {
+        var stmt:COpaquePointer = nil
+        if SQLITE_OK != sqlite3_prepare_v2(_handle, "PRAGMA table_info(\(tableName))", -1, &stmt, nil) {
+            sqlite3_finalize(stmt)
+            return []
+        }
+        var colunms:[SQLite.Column] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            colunms.append(SQLite.Column(stmt))
+        }
+        sqlite3_finalize(stmt)
+        return colunms
+    }
+    
     // 获取最后出错信息
     var lastError:ErrorType {
         let errorCode = sqlite3_errcode(_handle)
@@ -406,20 +435,20 @@ extension SQLite.Handle : SQLiteAlter {
 // MARK: - SQLiteHandle 创建表
 extension SQLite.Handle : SQLiteCreate {
     
-    func createTableIfNotExists(tableName:String, params:[SQLColumn]) throws {
-        let paramString = params.componentsJoinedByString(",") {
-            String(format: "\"\($0.0)\" \($0.1)\($0.2)%@", $0.3?.joinIn(" DEFAULT ", "") ?? "")
-        }
-        let sql = "CREATE TABLE IF NOT EXISTS \"\(tableName)\" (\(paramString))"
-        let error = execSQL(sql)
-        guard case .OK = error else { throw error }
-    }
+//    func createTableIfNotExists(tableName:String, params:[SQLColumn]) throws {
+//        let paramString = params.componentsJoinedByString(",") {
+//            String(format: "\"\($0.0)\" \($0.1)\($0.2)%@", $0.3?.joinIn(" DEFAULT ", "") ?? "")
+//        }
+//        let sql = "CREATE TABLE IF NOT EXISTS \"\(tableName)\" (\(paramString))"
+//        let error = execSQL(sql)
+//        guard case .OK = error else { throw error }
+//    }
     
     func createTableIfNotExists(tableName:String, params:[SQLiteColumn]) throws {
         let paramString = params.componentsJoinedByString(",") {
-            String(format: "\"\($0.0)\" \($0.1)\($0.2)%@", $0.3?.joinIn(" DEFAULT ", "") ?? "")
+            String(format: "\($0.0) \($0.1)\($0.2)%@", $0.3?.joinIn(" DEFAULT ", "") ?? "")
         }
-        let sql = "CREATE TABLE IF NOT EXISTS \"\(tableName)\" (\(paramString))"
+        let sql = "CREATE TABLE IF NOT EXISTS \(tableName) (\(paramString))"
         let error = execSQL(sql)
         guard case .OK = error else { throw error }
     }
@@ -575,27 +604,19 @@ extension SQLite.Handle : SQLiteSelect {
 // MARK: - SQLiteHandle 插入
 extension SQLite.Handle : SQLiteInsert {
     
-    func insert(or:String?, into tableName:String, columns:[String]? = nil) throws -> (columns:[String], bindSet:SQLiteBindSet) {
-        let orString = or?.joinIn(" ", "")
+    func insert(or:String?, into tableName:String, columns:[String]? = nil) throws -> (columns:[SQLite.Column], bindSet:SQLiteBindSet) {
+        let orString = or?.joinIn(" ", "") ?? ""
         let columnNames = columns?.componentsJoinedByString(", ").joinIn("(", ")") ?? ""
-        var columnFields = columns ?? []
-        var length = columnFields.count
-        if length == 0 {
-            let last = _lastSQL
-            if let resultSet = try? querySQL("PRAGMA table_info(\"\(tableName)\")") {
-                while resultSet.next {
-                    columnFields.append(resultSet.getString("name"))
-                    length++
-                }
-            }
-            _lastSQL = last
-        }
+        let tableColumns = tableInfo(tableName)
+        let length = columns?.count ?? tableColumns.count
+        
         let values = [String](count: length, repeatedValue: "?").componentsJoinedByString(", ")
         let sql = "INSERT\(orString) INTO \(tableName)\(columnNames) VALUES(\(values))"
+        print("SQL:\(sql)")
         guard let resultSet = try? querySQL(sql) else {
             throw lastError
         }
-        return (columnFields, resultSet as! SQLite.RowSet)
+        return (tableColumns, resultSet as! SQLite.RowSet)
     }
     
     
@@ -603,14 +624,15 @@ extension SQLite.Handle : SQLiteInsert {
         guard let result = try? insert(or, into: tableName, columns: columns) else {
             return SQLiteError(rawValue: sqlite3_errcode(_handle)) ?? SQLiteError.ERROR
         }
+        let bindSet = result.bindSet
         var flag:CInt = SQLITE_ERROR
         for var i:Int = 0; i<values.count; i++ {
-            flag = result.bindSet.bindValue(values[i], index: i + 1)
+            flag = bindSet.bindValue(values[i], index: i + 1)
             assert(flag == SQLITE_OK || flag == SQLITE_ROW || DEBUG != 1, "绑定[\(i)]失败 value=\(values[i])")
             if flag != SQLITE_OK && flag != SQLITE_ROW { break }
         }
         if flag == SQLITE_OK || flag == SQLITE_ROW {
-            flag = result.bindSet.step
+            flag = bindSet.step
             if flag == SQLITE_OK || flag == SQLITE_DONE {
                 flag = SQLITE_OK
             }
@@ -618,19 +640,19 @@ extension SQLite.Handle : SQLiteInsert {
         return SQLiteError(rawValue: flag) ?? SQLiteError.ERROR
     }
     
-    func insert(into tableName:String, columns:[String]?, values:Any...) throws -> Int {
+    func insert(into tableName:String, columns:[String]? = nil, values:Any...) throws -> Int {
         let error:SQLiteError = insert(nil, into: tableName, columns: columns, values: values)
         if case .OK = error {
             return Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle))
         } else { throw error }
     }
-    func insertOrReplace(into tableName:String, columns:[String]?, values:Any...) throws -> Int {
+    func insertOrReplace(into tableName:String, columns:[String]? = nil, values:Any...) throws -> Int {
         let error:SQLiteError = insert("OR REPLACE", into: tableName, columns: columns, values: values)
         if case .OK = error {
             return Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle))
         } else { throw error }
     }
-    func insertOrIgnore(into tableName:String, columns:[String]?, values:Any...) throws -> Int {
+    func insertOrIgnore(into tableName:String, columns:[String]? = nil, values:Any...) throws -> Int {
         let error:SQLiteError = insert("OR IGNORE", into: tableName, columns: columns, values: values)
         if case .OK = error {
             return Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle))
@@ -638,21 +660,40 @@ extension SQLite.Handle : SQLiteInsert {
     }
     
     func insert<T>(or:String? = nil, into tableName:String, columns:[String]? = nil, values:[T], map:(id:Int,item:T)->[String:Any]) -> SQLiteError {
+  
         guard let result = try? insert(or, into: tableName, columns: columns) else {
             return SQLiteError(rawValue: sqlite3_errcode(_handle)) ?? SQLiteError.ERROR
         }
         let bindSet:SQLiteBindSet = result.bindSet
-        let columnFields:[String] = result.columns
+        var columnFields:[SQLite.Column] = result.columns
+        let columnNames = columns ?? columnFields.valuesFor({ $0.name })
+        if let names = columns {
+            columnFields = columnFields.filter({names.indexOf($0.name) != nil})
+        }
         
-        var lastInsertID = Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle))
-
+        // 获取最后一次插入的ID
         beginTransaction()
-
         var flag:CInt = SQLITE_ERROR
+        for var i:Int = 0; i<columnFields.count; i++ {
+            let value:Int? = columnFields[i].primaryKey ? nil : 1
+            bindSet.bindValue(value, index: i + 1)
+        }
+        flag = bindSet.step
+        if flag == SQLITE_OK || flag == SQLITE_DONE {
+            rollbackTransaction()
+        } else {
+            return SQLiteError(rawValue: flag) ?? SQLiteError.CUSTOM
+        }
+        bindSet.reset()
+        var lastInsertID = Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle)) - 1
+        beginTransaction()
+        
+        // 插入数据
         for value in values {
+            
             let dict = map(id: lastInsertID + 1, item: value)
             for var i:Int = 0; i<columnFields.count; i++ {
-                let key = columnFields[i]
+                let key = columnNames[i]
                 flag = bindSet.bindValue(dict[key], index: i + 1)
                 if flag != SQLITE_OK && flag != SQLITE_ROW { break }
             }
@@ -661,7 +702,10 @@ extension SQLite.Handle : SQLiteInsert {
                 if flag != SQLITE_OK && flag != SQLITE_DONE {
                     assert(DEBUG != 1, "无法绑定数据[\(dict)] 到[\(columnFields)]")
                     bindSet.bindClear()     //如果失败则绑定下一组
-                } else { lastInsertID++ }
+                } else {
+                    bindSet.reset()
+                    lastInsertID = Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle));
+                }
             }
         }
         if flag == SQLITE_OK || flag == SQLITE_DONE {
@@ -694,11 +738,13 @@ extension SQLite {
         init (_ stmt:COpaquePointer) {
             _stmt = stmt
             let length = sqlite3_column_count(_stmt);
+            columnCount = Int(length)
             var columns:[String] = []
             for i:CInt in 0..<length {
                 let name:UnsafePointer<CChar> = sqlite3_column_name(_stmt,i)
                 columns.append(String.fromCString(name)!)
             }
+            //print(columns)
             self.columns = columns
         }
         deinit {
@@ -707,6 +753,22 @@ extension SQLite {
             }
         }
         private let columns:[String]
+        let columnCount:Int
+    }
+    
+    class Column {
+        let cid:Int
+        let name:String
+        let notNull:Bool
+        let defaultValue:String
+        let primaryKey:Bool
+        init(_ stmt:COpaquePointer) {
+            cid = Int(truncatingBitPattern: sqlite3_column_int64(stmt, 0))
+            name =  String.fromCString(UnsafePointer<CChar>(sqlite3_column_text(stmt, 1))) ?? ""
+            notNull = sqlite3_column_int(stmt, 3) > 0
+            defaultValue = String.fromCString(UnsafePointer<CChar>(sqlite3_column_text(stmt, 4))) ?? ""
+            primaryKey = sqlite3_column_int(stmt, 5) > 0
+        }
     }
 }
 
@@ -846,6 +908,42 @@ extension SQLite.RowSet : SQLiteResultSet {
         
         return dict
     }
+    func getInt64(columnIndex:Int) -> Int64 {
+        return columnIndex < columnCount ? sqlite3_column_int64(_stmt, CInt(columnIndex)) : 0
+    }
+    func getUInt64(columnIndex:Int) -> UInt64 {
+        return UInt64(bitPattern: getInt64(columnIndex))
+    }
+    func getInt(columnIndex:Int) -> Int {
+        return Int(truncatingBitPattern: getInt64(columnIndex))
+    }
+    func getUInt(columnIndex:Int) -> UInt {
+        return UInt(truncatingBitPattern: getInt64(columnIndex))
+    }
+    func getInt32(columnIndex:Int) -> Int32 {
+        return Int32(truncatingBitPattern: getInt64(columnIndex))
+    }
+    func getUInt32(columnIndex:Int) -> UInt32 {
+        return UInt32(truncatingBitPattern: getInt64(columnIndex))
+    }
+    func getBool(columnIndex:Int) -> Bool {
+        return getInt64(columnIndex) > 0
+    }
+    func getFloat(columnIndex:Int) -> Float {
+        return Float(sqlite3_column_double(_stmt, CInt(columnIndex)))
+    }
+    func getDouble(columnIndex:Int) -> Double {
+        return sqlite3_column_double(_stmt, CInt(columnIndex))
+    }
+    func getString(columnIndex:Int) -> String! {
+        let result = sqlite3_column_text(_stmt, CInt(columnIndex))
+        return String.fromCString(UnsafePointer<CChar>(result))
+    }
+    
+    func getColumnIndex(columnName:String) -> Int {
+        return columns.indexOf({ $0 == columnName }) ?? NSNotFound
+    }
+    
     func getUInt(columnName:String) -> UInt {
         return UInt(truncatingBitPattern: getInt64(columnName))
     }
@@ -935,7 +1033,8 @@ struct SQLColumnOptions : OptionSetType, CustomStringConvertible {
     }
 }
 
-enum SQLiteColumnType : CInt {
+// MARK: ColumnType
+enum SQLColumnType : CInt {
     case integer = 1
     case float
     case text
@@ -949,122 +1048,6 @@ enum SQLiteColumnType : CInt {
         case .text:     return "TEXT"
         case .blob:     return "BLOB"
         case .null:     return "NULL"
-        }
-    }
-}
-
-// MARK: ColumnType
-enum SQLColumnType : CustomStringConvertible{
-    
-    // INTEGER 1 数值
-    case INTEGER
-    case INT
-    case TINYINT
-    case SMALLINT
-    case MEDIUMINT
-    case BIGINT
-    case UNSIGNED_BIG_INT
-    case INT2
-    case INT8
-    
-    // TEXT 2 字符 字符串
-    case TEXT               // 2,147,483,647 字符
-    case CLOB
-    case CHAR(Int)          // 0 - 8000 非 Unicode
-    case VARCHAR(Int)       // 0 - 8000 非 Unicode
-    case NCHAR(Int)         // 0 - 4000 Unicode
-    case NVARCHAR(Int)      // 0 - 4000 Unicode
-    case CHARACTER(Int)
-    case NATIVE_CHARACTER(Int)
-    case VARYING_CHARACTER(Int)
-    
-    // NONE 3
-    case BLOB
-    
-    // REAL 4 浮点数
-    case REAL
-    case FLOAT
-    case DOUBLE
-    case DOUBLE_PRECISION
-    
-    // NUMERIC 5
-    case NUMERIC
-    case DECIMAL (Int,Int)
-    case BOOLEAN
-    case DATE
-    case DATETIME
-    case TIMESTAMP
-    
-    var description:String {
-        switch self {
-            // INTEGER 1 数值
-        case .INTEGER:
-            return "INTEGER"
-        case .INT:
-            return "INT"
-        case .TINYINT:
-            return "TINYINT"
-        case .SMALLINT:
-            return "SMALLINT"
-        case .MEDIUMINT:
-            return "MEDIUMINT"
-        case .BIGINT:
-            return "BIGINT"
-        case .UNSIGNED_BIG_INT:
-            return "UNSIGNED BIG INT"
-        case .INT2:
-            return "INT2"
-        case .INT8:
-            return "INT8"
-            
-            // TEXT 2 字符 字符串
-        case .TEXT:               // 2,147,483,647 字符
-            return "TEXT"
-        case .CLOB:
-            return "CLOB"
-        case .CHAR(let num):          // 0 - 8000 非 Unicode
-            return "CHAR(\(num))"
-        case .VARCHAR(let num):       // 0 - 8000 非 Unicode
-            return "VARCHAR(\(num))"
-        case .NCHAR(let num):         // 0 - 4000 Unicode
-            return "NCHAR(\(num))"
-        case .NVARCHAR(let num):      // 0 - 4000 Unicode
-            return "NVARCHAR(\(num))"
-        case .CHARACTER(let num):
-            return "CHARACTER(\(num))"
-        case .NATIVE_CHARACTER(let num):
-            return "NATIVE CHARACTER(\(num))"
-        case .VARYING_CHARACTER(let num):
-            return "VARYING CHARACTER(\(num))"
-            
-            // NONE 3
-        case .BLOB:
-            return "BLOB"
-            
-            // FLOAT 4 浮点数
-        case .REAL:
-            return "REAL"
-        case .FLOAT:
-            return "FLOAT"
-        case .DOUBLE:
-            return "DOUBLE"
-        case .DOUBLE_PRECISION:
-            return "DOUBLE PRECISION"
-            
-            // NUMERIC 5
-        case .NUMERIC:
-            return "NUMERIC"
-        case .DECIMAL(let num, let length):
-            return "DECIMAL(\(num),\(length))"
-        case .BOOLEAN:
-            return "BOOLEAN"
-        case .DATE:
-            return "DATE"
-        case .DATETIME:
-            return "DATETIME"
-        case .TIMESTAMP:
-            SQLITE_OK
-            return "TIMESTAMP"
         }
     }
 }
@@ -1099,6 +1082,7 @@ enum SQLiteError : CInt, CustomStringConvertible, CustomDebugStringConvertible, 
     case NOTADB     = 26//SQLITE_NOTADB     File opened that is not a database file
     case NOTICE     = 27//SQLITE_NOTICE     Notifications from sqlite3_log()
     case WARNING    = 28//SQLITE_WARNING    Warnings from sqlite3_log()
+    case CUSTOM     = 99//CUSTOM            insert error
     case ROW       = 100//SQLITE_ROW        sqlite3_step() has another row ready
     case DONE      = 101//SQLITE_DONE       sqlite3_step() has finished executing
     
@@ -1140,6 +1124,7 @@ enum SQLiteError : CInt, CustomStringConvertible, CustomDebugStringConvertible, 
         case .NOTADB      : return "文件并非数据库文件"
         case .NOTICE      : return "sqlite3_log() 通知更新"
         case .WARNING     : return "sqlite3_log() 警告更新"
+        case .CUSTOM      : return "自定义插入失败"
         case .ROW         : return "sqlite3_step() 另有一行数据已经就绪"
         case .DONE        : return "sqlite3_step() 执行成功"
         }
@@ -1176,6 +1161,7 @@ enum SQLiteError : CInt, CustomStringConvertible, CustomDebugStringConvertible, 
         case .NOTADB      : return "File opened that is not a database file"
         case .NOTICE      : return "Notifications from sqlite3_log()"
         case .WARNING     : return "Warnings from sqlite3_log()"
+        case .CUSTOM      : return "custom insert error"
         case .ROW         : return "sqlite3_step() has another row ready"
         case .DONE        : return "sqlite3_step() has finished executing"
         }
@@ -1183,3 +1169,119 @@ enum SQLiteError : CInt, CustomStringConvertible, CustomDebugStringConvertible, 
     
     var debugDescription: String { return "Error code \(rawValue) is #define SQLITE_\(self) with \(description)" }
 }
+
+
+//enum SQLColumnType : CustomStringConvertible{
+//
+//    // INTEGER 1 数值
+//    case INTEGER
+//    case INT
+//    case TINYINT
+//    case SMALLINT
+//    case MEDIUMINT
+//    case BIGINT
+//    case UNSIGNED_BIG_INT
+//    case INT2
+//    case INT8
+//
+//    // TEXT 2 字符 字符串
+//    case TEXT               // 2,147,483,647 字符
+//    case CLOB
+//    case CHAR(Int)          // 0 - 8000 非 Unicode
+//    case VARCHAR(Int)       // 0 - 8000 非 Unicode
+//    case NCHAR(Int)         // 0 - 4000 Unicode
+//    case NVARCHAR(Int)      // 0 - 4000 Unicode
+//    case CHARACTER(Int)
+//    case NATIVE_CHARACTER(Int)
+//    case VARYING_CHARACTER(Int)
+//
+//    // NONE 3
+//    case BLOB
+//
+//    // REAL 4 浮点数
+//    case REAL
+//    case FLOAT
+//    case DOUBLE
+//    case DOUBLE_PRECISION
+//
+//    // NUMERIC 5
+//    case NUMERIC
+//    case DECIMAL (Int,Int)
+//    case BOOLEAN
+//    case DATE
+//    case DATETIME
+//    case TIMESTAMP
+//
+//    var description:String {
+//        switch self {
+//            // INTEGER 1 数值
+//        case .INTEGER:
+//            return "INTEGER"
+//        case .INT:
+//            return "INT"
+//        case .TINYINT:
+//            return "TINYINT"
+//        case .SMALLINT:
+//            return "SMALLINT"
+//        case .MEDIUMINT:
+//            return "MEDIUMINT"
+//        case .BIGINT:
+//            return "BIGINT"
+//        case .UNSIGNED_BIG_INT:
+//            return "UNSIGNED BIG INT"
+//        case .INT2:
+//            return "INT2"
+//        case .INT8:
+//            return "INT8"
+//
+//            // TEXT 2 字符 字符串
+//        case .TEXT:               // 2,147,483,647 字符
+//            return "TEXT"
+//        case .CLOB:
+//            return "CLOB"
+//        case .CHAR(let num):          // 0 - 8000 非 Unicode
+//            return "CHAR(\(num))"
+//        case .VARCHAR(let num):       // 0 - 8000 非 Unicode
+//            return "VARCHAR(\(num))"
+//        case .NCHAR(let num):         // 0 - 4000 Unicode
+//            return "NCHAR(\(num))"
+//        case .NVARCHAR(let num):      // 0 - 4000 Unicode
+//            return "NVARCHAR(\(num))"
+//        case .CHARACTER(let num):
+//            return "CHARACTER(\(num))"
+//        case .NATIVE_CHARACTER(let num):
+//            return "NATIVE CHARACTER(\(num))"
+//        case .VARYING_CHARACTER(let num):
+//            return "VARYING CHARACTER(\(num))"
+//
+//            // NONE 3
+//        case .BLOB:
+//            return "BLOB"
+//
+//            // FLOAT 4 浮点数
+//        case .REAL:
+//            return "REAL"
+//        case .FLOAT:
+//            return "FLOAT"
+//        case .DOUBLE:
+//            return "DOUBLE"
+//        case .DOUBLE_PRECISION:
+//            return "DOUBLE PRECISION"
+//
+//            // NUMERIC 5
+//        case .NUMERIC:
+//            return "NUMERIC"
+//        case .DECIMAL(let num, let length):
+//            return "DECIMAL(\(num),\(length))"
+//        case .BOOLEAN:
+//            return "BOOLEAN"
+//        case .DATE:
+//            return "DATE"
+//        case .DATETIME:
+//            return "DATETIME"
+//        case .TIMESTAMP:
+//            SQLITE_OK
+//            return "TIMESTAMP"
+//        }
+//    }
+//}
