@@ -445,7 +445,7 @@ extension SQLite.Handle : SQLiteCreate {
 //    }
     
     func createTableIfNotExists(tableName:String, params:[SQLiteColumn]) throws {
-        let paramString = params.componentsJoinedByString(",") {
+        let paramString = params.componentsJoinedByString(", ") {
             String(format: "\($0.0) \($0.1)\($0.2)%@", $0.3?.joinIn(" DEFAULT ", "") ?? "")
         }
         let sql = "CREATE TABLE IF NOT EXISTS \(tableName) (\(paramString))"
@@ -612,7 +612,6 @@ extension SQLite.Handle : SQLiteInsert {
         
         let values = [String](count: length, repeatedValue: "?").componentsJoinedByString(", ")
         let sql = "INSERT\(orString) INTO \(tableName)\(columnNames) VALUES(\(values))"
-        print("SQL:\(sql)")
         guard let resultSet = try? querySQL(sql) else {
             throw lastError
         }
@@ -666,7 +665,6 @@ extension SQLite.Handle : SQLiteInsert {
         }
         let bindSet:SQLiteBindSet = result.bindSet
         var columnFields:[SQLite.Column] = result.columns
-        let columnNames = columns ?? columnFields.valuesFor({ $0.name })
         if let names = columns {
             columnFields = columnFields.filter({names.indexOf($0.name) != nil})
         }
@@ -685,15 +683,15 @@ extension SQLite.Handle : SQLiteInsert {
             return SQLiteError(rawValue: flag) ?? SQLiteError.CUSTOM
         }
         bindSet.reset()
-        var lastInsertID = Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle)) - 1
+        var lastInsertID = sqlite3_last_insert_rowid(_handle)
         beginTransaction()
         
         // 插入数据
         for value in values {
             
-            let dict = map(id: lastInsertID + 1, item: value)
+            let dict = map(id: Int(truncatingBitPattern: lastInsertID), item: value)
             for var i:Int = 0; i<columnFields.count; i++ {
-                let key = columnNames[i]
+                let key = columnFields[i].name
                 flag = bindSet.bindValue(dict[key], index: i + 1)
                 if flag != SQLITE_OK && flag != SQLITE_ROW { break }
             }
@@ -704,7 +702,9 @@ extension SQLite.Handle : SQLiteInsert {
                     bindSet.bindClear()     //如果失败则绑定下一组
                 } else {
                     bindSet.reset()
-                    lastInsertID = Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle));
+                    if lastInsertID == sqlite3_last_insert_rowid(_handle) {
+                        lastInsertID++
+                    }
                 }
             }
         }
