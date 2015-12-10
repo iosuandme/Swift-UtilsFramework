@@ -9,18 +9,6 @@
 import Foundation
 
 
-var str = "Sign"
-let data = str.dataUsingEncoding(NSUTF8StringEncoding, allowLossyConversion: true)!
-let bytes:UnsafePointer<Int8> = UnsafePointer<Int8>(data.bytes)
-var chars:[Int8] = []
-for var i:Int = 0; i<data.length; i++ {
-    chars.append(bytes[i])
-}
-
-let home = NSHomeDirectory()
-let dir = (home as NSString).stringByAppendingPathComponent("Wunderlist")
-//println(dir)
-
 
 /*
 let r = String(format: "数量%.2f", 0.5567)
@@ -133,66 +121,30 @@ class Preson: SQLiteDataBase {
     var computer_id:Int
 }
 
+*/
+
+
 
 func main() {
     //NSFileManager.defaultManager().removeItemAtPath("/Users/apple/Documents/test.sqlite", error: nil)
     
     let sqlite = SQLite(path: "/Users/apple/Documents/test.sqlite", version: 2) {
         (db, oldVersion, newVersion) -> Bool in
-        println("oldVersion:\(oldVersion) newVersion:\(newVersion)")
+        print("oldVersion:\(oldVersion) newVersion:\(newVersion)")
         switch (oldVersion,newVersion) {
-        case (0,1):
-            //db.createTableIfNotExists("cpu", withType: CPU.self)
-            // 创建表方式1
-            db.createTableIfNotExists("cpu", params: [
-                ("cpu_id",  .INTEGER,     .PrimaryKey),
-                ("cpu_firm",.VARCHAR(20), .None)
-            ])
-            // 创建表方式2
-            db.createTableIfNotExists("computer", withType: Computer.self)
-            db.createTableIfNotExists("preson", withType: Preson.self)
-            
-            // 插入数据方式1
-            db.insert(into: "cpu", values: 1,"Intel")
-            // 插入数据方式2
-            db.insertOrReplace(into: "cpu", values: 2,"AMD")
-            
-            // 插入数据方式3
-            let computers = [
-                Computer(id: 1, brand: "Apple", cpu: 1),
-                Computer(id: 2, brand: "IBM", cpu: 1),
-                Computer(id: 3, brand: "HP", cpu: 2),
-                Computer(id: 4, brand: "Lenovo", cpu: 2)
-            ]
-            db.insertOrReplace(into: "computer", ["computer_brand","cpu_id"]) {
-                (index:Int) -> [String : Any]? in
-                if index >= computers.count {
-                    return nil
-                }
-                return [
-                    "computer_brand":computers[index].computer_brand,
-                    "cpu_id"        :computers[index].cpu_id
-                ]
-            }
-            
-            
-            // 插入数据方式4
-            let presons = [
-                Preson(id: 1, name: "张三", computer: 2),
-                Preson(id: 2, name: "李四", computer: 1, age: 36),
-                Preson(id: 3, name: "王五", computer: 4, age: 48),
-                Preson(id: 4, name: "赵六", computer: 3, age: 24),
-                Preson(id: 5, name: "燕七", computer: 1)
-            ]
-            db.insertOrReplace(into: "preson", rows: presons)
         case (0,2):
             // 创建表方式1
-            db.createTableIfNotExists("cpu", params: [
-                ("cpu_id",  .INTEGER,     .PrimaryKey),
-                ("cpu_firm",.VARCHAR(20), .None),
-                ("cpu_imei",.VARCHAR(20), .None)
+            try! db.createTableIfNotExists("cpu", params: [
+                ("cpu_id",  .integer, [.PrimaryKey, .Autoincrement], nil),
+                ("cpu_firm",.text, .None, "AMD"),
+                ("cpu_imei",.text, .None, nil)
                 ])
             // 创建表方式2
+            try! db.createTableIfNotExists("computer", params: [
+                ("computer_id", .integer, [.PrimaryKey, .Autoincrement], nil),
+                ("computer_brand", .text, .None, nil),
+                ("cpu_id", .integer, .None, nil)
+                ])
             db.createTableIfNotExists("computer", withType: Computer.self)
             db.createTableIfNotExists("preson", withType: Preson.self)
             
@@ -241,7 +193,7 @@ func main() {
     
     if error != .OK {
         println("不能操作数据库:\(error)")
-    } else {        
+    } else {
         let count = db.select(count: nil, from: "preson", Where: nil)
         println("程序员共 \(count) 人")
         if let rs = db.select(nil, from: ["p":"preson","c":"computer","u":"cpu"], Where: "p.computer_id = c.computer_id AND c.cpu_id = u.cpu_id AND u.cpu_id = 1") {
@@ -256,4 +208,3 @@ func main() {
 }
 
 main()
-*/

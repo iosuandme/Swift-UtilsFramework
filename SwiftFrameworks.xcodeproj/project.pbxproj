@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		186EA6EF19D998EE0097370C /* Date.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186EA6EE19D998EE0097370C /* Date.swift */; };
-		186EA6F119D999020097370C /* Error.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186EA6F019D999020097370C /* Error.swift */; };
 		186EB24219C1655700FAA251 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186EB24119C1655700FAA251 /* main.swift */; };
 		186EB25319C17FE200FAA251 /* SQLite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186EB25219C17FE200FAA251 /* SQLite.swift */; };
 		3920946C1C15AC0B0090CF59 /* libsqlite3.0.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 3920946B1C15AC0B0090CF59 /* libsqlite3.0.tbd */; };
@@ -33,7 +32,6 @@
 /* Begin PBXFileReference section */
 		180F708219C29B34005EDFEB /* iOS.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = iOS.playground; sourceTree = "<group>"; };
 		186EA6EE19D998EE0097370C /* Date.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Date.swift; path = value/Date.swift; sourceTree = "<group>"; };
-		186EA6F019D999020097370C /* Error.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Error.swift; path = value/Error.swift; sourceTree = "<group>"; };
 		186EB23E19C1655700FAA251 /* SwiftFrameworks */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SwiftFrameworks; sourceTree = BUILT_PRODUCTS_DIR; };
 		186EB24119C1655700FAA251 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		186EB24D19C165C300FAA251 /* SwiftFrameworks-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SwiftFrameworks-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -65,7 +63,6 @@
 				3920946E1C15B4010090CF59 /* String+JSON.swift */,
 				3920946F1C15B4010090CF59 /* String+Util.swift */,
 				186EA6EE19D998EE0097370C /* Date.swift */,
-				186EA6F019D999020097370C /* Error.swift */,
 			);
 			name = value;
 			sourceTree = "<group>";
@@ -183,7 +180,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				392094711C15B4010090CF59 /* String+JSON.swift in Sources */,
-				186EA6F119D999020097370C /* Error.swift in Sources */,
 				392094721C15B4010090CF59 /* String+Util.swift in Sources */,
 				186EB24219C1655700FAA251 /* main.swift in Sources */,
 				39944D691A19E8A10007C010 /* Encrypt.swift in Sources */,

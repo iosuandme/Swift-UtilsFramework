@@ -55,25 +55,25 @@ protocol SQLiteBindSet : SQLiteBaseSet {
     func bindValue<T>(columnValue:T?,index:Int) -> CInt
 }
 
-protocol SQLiteDataBase : CustomReflectable {
-    // 返回纯属性所代表 字段(column)的类型 和 参数
-    static func tableColumnTypes() -> [(SQLColumnName, SQLColumnType, SQLColumnState)]
-    
-    func customMirror() -> Mirror
-
-}
-
-extension SQLiteDataBase {
-    func customMirror() -> Mirror {
-        return Mirror(reflecting: self)
-    }
-}
+//protocol SQLiteDataBase : CustomReflectable {
+//    // 返回纯属性所代表 字段(column)的类型 和 参数
+//    static func tableColumnTypes() -> [(SQLColumnName, SQLiteColumnType, SQLColumnOptions)]
+//    
+//    func customMirror() -> Mirror
+//
+//}
+//
+//extension SQLiteDataBase {
+//    func customMirror() -> Mirror {
+//        return Mirror(reflecting: self)
+//    }
+//}
 
 
 // MARK: - SQLiteProtocol 基本
 protocol SQLiteBase {
     // 执行 SQL 语句
-    func execSQL(sql:String) -> SQLite.Error
+    func execSQL(sql:String) -> SQLiteError
     // 执行 SQL 语句
     func executeSQL(sql:String) throws
     // 执行 SQL 查询语句
@@ -130,11 +130,13 @@ protocol SQLiteQueue {
 
 // MARK: - SQLiteProtocol 创建
 protocol SQLiteCreate {
+
     // 通过一个
-    func createTableIfNotExists(tableName:String, params:[(SQLColumnName,SQLColumnType,SQLColumnState)]) throws
-    
-    // 通过一个类来创建表 类必须实现 SQLiteDataBase 协议 (推荐)
-    func createTableIfNotExists<T : SQLiteDataBase>(tableName:String, withType:T.Type) throws
+    func createTableIfNotExists(tableName:String, params:[SQLColumn]) throws
+    func createTableIfNotExists(tableName:String, params:[SQLiteColumn]) throws
+
+//    // 通过一个类来创建表 类必须实现 SQLiteDataBase 协议 (推荐)
+//    func createTableIfNotExists<T : SQLiteDataBase>(tableName:String, withType:T.Type) throws
 }
 
 // MARK: - SQLiteProtocol 改变
@@ -144,15 +146,17 @@ protocol SQLiteUpdate {
 
 // MARK: - SQLiteProtocol 增加
 protocol SQLiteInsert {
-    func insert(into tableName:String, values:Any...) throws -> Int
+    func insert(or:String?, into tableName:String, columns:[String]?) throws -> (columns:[String], bindSet:SQLiteBindSet)
     // 单条插入全部字段
-    func insert(into tableName:String, values:Any...) -> Error
-    func insertOrReplace(into tableName:String, values:Any...) -> Error
+    func insert(into tableName:String, columns:[String]?, values:Any...) throws -> Int
+    func insertOrReplace(into tableName:String, columns:[String]?, values:Any...) throws -> Int
+    func insertOrIgnore(into tableName:String, columns:[String]?, values:Any...) throws -> Int
     
     // 批量插入
-    func insertOrReplace<T : SQLiteDataBase>(into tableName:String, rows:[T]) -> Error
-    func insertOrReplace(into tableName:String, _ columns:[String], values:(Int) -> [String:Any]?) -> Error
-    //func insert(into tableName:String, params:[SQLite.ColumnValue]) -> Error
+    func insert<T>(or:String?, into tableName:String, columns:[String]?, values:[T], map:(id:Int,item:T)->[String:Any]) -> SQLiteError
+    func insert<T>(into tableName:String, columns:[String]?, values:[T], map:(id:Int,item:T)->[String:Any]) -> SQLiteError
+    func insertOrReplace<T>(into tableName:String, columns:[String]?, values:[T], map:(id:Int,item:T)->[String:Any]) -> SQLiteError
+    func insertOrIgnore<T>(into tableName:String, columns:[String]?, values:[T], map:(id:Int,item:T)->[String:Any]) -> SQLiteError
 }
 
 // MARK: - SQLiteProtocol 删除
@@ -174,6 +178,9 @@ protocol SQLiteSelect {
 
 typealias SQLColumnName = String
 typealias SQLTableName = String
+typealias SQLColumnDefault = String?
+typealias SQLColumn = (SQLColumnName,SQLColumnType,SQLColumnOptions,SQLColumnDefault)
+typealias SQLiteColumn = (SQLColumnName,SQLiteColumnType,SQLColumnOptions,SQLColumnDefault)
 
 // MARK: - SQLite 主函数
 class SQLite {
@@ -216,7 +223,7 @@ class SQLite {
         let result = sqlite3_open(dbPath.UTF8String, &handle)
         if result != SQLITE_OK {
             sqlite3_close(handle)
-            throw SQLite.Error(rawValue: result)!
+            throw SQLiteError(rawValue: result)!
         }
         return SQLite.Handle(handle: handle)
     }
@@ -273,9 +280,9 @@ extension SQLite.Handle : SQLiteBase {
         return sqlite3_exec(_handle,sql,nil,nil,nil)
     }
     
-    func execSQL(sql:String) -> SQLite.Error {
+    func execSQL(sql:String) -> SQLiteError {
         _lastSQL = sql
-        return SQLite.Error(rawValue: sqlite3_exec(_handle,sql,nil,nil,nil))!
+        return SQLiteError(rawValue: sqlite3_exec(_handle,sql,nil,nil,nil))!
     }
     
     //执行 SQL 语句
@@ -301,7 +308,7 @@ extension SQLite.Handle : SQLiteBase {
     // 获取最后出错信息
     var lastError:ErrorType {
         let errorCode = sqlite3_errcode(_handle)
-        if let error = SQLite.Error(rawValue: errorCode) {
+        if let error = SQLiteError(rawValue: errorCode) {
             return error
         }
         let errorDescription = String.fromCString(sqlite3_errmsg(_handle)) ?? ""
@@ -342,7 +349,7 @@ extension SQLite.Handle : SQLiteMove {
     }
     
     // oldTableName 必须已存在
-    func insert(or:String? = nil, into newTableName:String, select columns:[String:String]?, from oldTableName:String, Where:String?) -> SQLite.Error {
+    func insert(or:String? = nil, into newTableName:String, select columns:[String:String]?, from oldTableName:String, Where:String?) -> SQLiteError {
         let columnNames:String = columns?.keys.componentsJoinedByString(", ") ?? "*"
         let oldColumnNames:String = columns?.values.componentsJoinedByString(", ") ?? "*"
         let orString = or?.joinIn(" ", "") ?? ""
@@ -399,49 +406,54 @@ extension SQLite.Handle : SQLiteAlter {
 // MARK: - SQLiteHandle 创建表
 extension SQLite.Handle : SQLiteCreate {
     
-    func createTableIfNotExists(tableName:String, params:[(SQLColumnName,SQLColumnType,SQLColumnState)]) throws {
-        var paramString = ""
-        for (name,type,state) in params {
-            if !paramString.isEmpty {
-                paramString += ", "
-            }
-            paramString += "\"\(name)\" \(type)\(state)"
+    func createTableIfNotExists(tableName:String, params:[SQLColumn]) throws {
+        let paramString = params.componentsJoinedByString(",") {
+            String(format: "\"\($0.0)\" \($0.1)\($0.2)%@", $0.3?.joinIn(" DEFAULT ", "") ?? "")
         }
         let sql = "CREATE TABLE IF NOT EXISTS \"\(tableName)\" (\(paramString))"
         let error = execSQL(sql)
         guard case .OK = error else { throw error }
     }
     
-    func createTableIfNotExists<T : SQLiteDataBase>(tableName:String, withType:T.Type) throws {
-        var paramString = ""
-        
-        let params = T.tableColumnTypes()
-        assert(params.count > 0 || DEBUG != 1, "模板类型没有返回表结构参数")
-        for (name, type, state) in params {
-            if !paramString.isEmpty {
-                paramString += ", "
-            }
-            paramString += "\"\(name)\" \(type)\(state)"
+    func createTableIfNotExists(tableName:String, params:[SQLiteColumn]) throws {
+        let paramString = params.componentsJoinedByString(",") {
+            String(format: "\"\($0.0)\" \($0.1)\($0.2)%@", $0.3?.joinIn(" DEFAULT ", "") ?? "")
         }
-        /*
-        var count:UInt32 = 0
-        let ivarList = class_copyIvarList(clsType, &count)
-        for i in 0..<count {
-            let ivar = ivarList[Int(i)]
-            if let name = String.fromCString(ivar_getName(ivar)) {
-                if let (type,state) = clsType.tableColumnTypeWithProperty(name) {
-                    if !paramString.isEmpty {
-                        paramString += ", "
-                    }
-                    paramString += "\"\(name)\" \(type)\(state)"
-                }
-            }
-        }
-        */
         let sql = "CREATE TABLE IF NOT EXISTS \"\(tableName)\" (\(paramString))"
         let error = execSQL(sql)
         guard case .OK = error else { throw error }
     }
+
+//    func createTableIfNotExists<T : SQLiteDataBase>(tableName:String, withType:T.Type) throws {
+//        var paramString = ""
+//        
+//        let params = T.tableColumnTypes()
+//        assert(params.count > 0 || DEBUG != 1, "模板类型没有返回表结构参数")
+//        for (name, type, state) in params {
+//            if !paramString.isEmpty {
+//                paramString += ", "
+//            }
+//            paramString += "\"\(name)\" \(type)\(state)"
+//        }
+//        /*
+//        var count:UInt32 = 0
+//        let ivarList = class_copyIvarList(clsType, &count)
+//        for i in 0..<count {
+//            let ivar = ivarList[Int(i)]
+//            if let name = String.fromCString(ivar_getName(ivar)) {
+//                if let (type,state) = clsType.tableColumnTypeWithProperty(name) {
+//                    if !paramString.isEmpty {
+//                        paramString += ", "
+//                    }
+//                    paramString += "\"\(name)\" \(type)\(state)"
+//                }
+//            }
+//        }
+//        */
+//        let sql = "CREATE TABLE IF NOT EXISTS \"\(tableName)\" (\(paramString))"
+//        let error = execSQL(sql)
+//        guard case .OK = error else { throw error }
+//    }
     
 }
 
@@ -563,14 +575,18 @@ extension SQLite.Handle : SQLiteSelect {
 // MARK: - SQLiteHandle 插入
 extension SQLite.Handle : SQLiteInsert {
     
-    func insert(or:String?, into tableName:String, columns:[String]? = nil, values:[Any]) throws -> SQLiteBindSet {
+    func insert(or:String?, into tableName:String, columns:[String]? = nil) throws -> (columns:[String], bindSet:SQLiteBindSet) {
         let orString = or?.joinIn(" ", "")
         let columnNames = columns?.componentsJoinedByString(", ").joinIn("(", ")") ?? ""
-        var length = values.count
+        var columnFields = columns ?? []
+        var length = columnFields.count
         if length == 0 {
             let last = _lastSQL
             if let resultSet = try? querySQL("PRAGMA table_info(\"\(tableName)\")") {
-                while resultSet.next { length++ }
+                while resultSet.next {
+                    columnFields.append(resultSet.getString("name"))
+                    length++
+                }
             }
             _lastSQL = last
         }
@@ -579,244 +595,92 @@ extension SQLite.Handle : SQLiteInsert {
         guard let resultSet = try? querySQL(sql) else {
             throw lastError
         }
-        return resultSet as! SQLite.RowSet
+        return (columnFields, resultSet as! SQLite.RowSet)
     }
     
     
-    func insert(or:String? = nil, into tableName:String, columns:[String]? = nil, values:[Any]) throws -> Int {
-        guard let bindSet:SQLiteBindSet = try? insert(or, into: tableName, columns: columns, values: values) else {
-            throw lastError
+    private func insert(or:String? = nil, into tableName:String, columns:[String]? = nil, values:[Any]) -> SQLiteError {
+        guard let result = try? insert(or, into: tableName, columns: columns) else {
+            return SQLiteError(rawValue: sqlite3_errcode(_handle)) ?? SQLiteError.ERROR
         }
-        var flag:CInt = SQLITE_OK
+        var flag:CInt = SQLITE_ERROR
         for var i:Int = 0; i<values.count; i++ {
-            flag = bindSet.bindValue(values[i], index: i + 1)
+            flag = result.bindSet.bindValue(values[i], index: i + 1)
             assert(flag == SQLITE_OK || flag == SQLITE_ROW || DEBUG != 1, "绑定[\(i)]失败 value=\(values[i])")
             if flag != SQLITE_OK && flag != SQLITE_ROW { break }
         }
         if flag == SQLITE_OK || flag == SQLITE_ROW {
-            flag = bindSet.step
+            flag = result.bindSet.step
             if flag == SQLITE_OK || flag == SQLITE_DONE {
-                return Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle))
+                flag = SQLITE_OK
             }
         }
-        throw NSError(domain: "Insert data error", code: Int(flag), userInfo: nil)
-        
+        return SQLiteError(rawValue: flag) ?? SQLiteError.ERROR
+    }
+    
+    func insert(into tableName:String, columns:[String]?, values:Any...) throws -> Int {
+        let error:SQLiteError = insert(nil, into: tableName, columns: columns, values: values)
+        if case .OK = error {
+            return Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle))
+        } else { throw error }
     }
     func insertOrReplace(into tableName:String, columns:[String]?, values:Any...) throws -> Int {
-        do {
-            return try insert("OR REPLACE", into: tableName, columns: columns, values: values)
-        } catch let error {
-            throw error
-        }
+        let error:SQLiteError = insert("OR REPLACE", into: tableName, columns: columns, values: values)
+        if case .OK = error {
+            return Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle))
+        } else { throw error }
     }
     func insertOrIgnore(into tableName:String, columns:[String]?, values:Any...) throws -> Int {
-        do {
-            return try insert("OR IGNORE", into: tableName, columns: columns, values: values)
-        } catch let error {
-            throw error
-        }
+        let error:SQLiteError = insert("OR IGNORE", into: tableName, columns: columns, values: values)
+        if case .OK = error {
+            return Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle))
+        } else { throw error }
     }
     
-    func
+    func insert<T>(or:String? = nil, into tableName:String, columns:[String]? = nil, values:[T], map:(id:Int,item:T)->[String:Any]) -> SQLiteError {
+        guard let result = try? insert(or, into: tableName, columns: columns) else {
+            return SQLiteError(rawValue: sqlite3_errcode(_handle)) ?? SQLiteError.ERROR
+        }
+        let bindSet:SQLiteBindSet = result.bindSet
+        let columnFields:[String] = result.columns
+        
+        var lastInsertID = Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle))
 
-    // 单条插入全部字段
-    private func insertValues(otherKeywords:String, into tableName:String, values:[Any]) -> Error {
-        var valueString = ""
+        beginTransaction()
+
+        var flag:CInt = SQLITE_ERROR
         for value in values {
-            if !valueString.isEmpty {
-                valueString += ", "
+            let dict = map(id: lastInsertID + 1, item: value)
+            for var i:Int = 0; i<columnFields.count; i++ {
+                let key = columnFields[i]
+                flag = bindSet.bindValue(dict[key], index: i + 1)
+                if flag != SQLITE_OK && flag != SQLITE_ROW { break }
             }
-            if value is String {
-                if (value as! String) == "Null" {
-                    valueString += "Null"
-                } else {
-                    valueString += "\"\(value)\""
-                }
-            } else {
-                valueString += "\(value)"
+            if flag == SQLITE_OK || flag == SQLITE_ROW {
+                flag = bindSet.step
+                if flag != SQLITE_OK && flag != SQLITE_DONE {
+                    assert(DEBUG != 1, "无法绑定数据[\(dict)] 到[\(columnFields)]")
+                    bindSet.bindClear()     //如果失败则绑定下一组
+                } else { lastInsertID++ }
             }
         }
-        let sql = "INSERT\(otherKeywords) INTO \(tableName) VALUES(\(valueString))"
-        return executeSQL(sql)
-    }
-    func insert(into tableName:String, values:Any...) -> Error {
-        return insertValues("", into: tableName, values: values)
+        if flag == SQLITE_OK || flag == SQLITE_DONE {
+            flag = SQLITE_OK
+            commitTransaction()
+        } else {
+            rollbackTransaction()
+        }
+        return SQLiteError(rawValue: flag) ?? SQLiteError.ERROR
     }
     
-    func insertOrReplace(into tableName:String, values:Any...) -> Error {
-        return insertValues(" OR REPLACE", into: tableName, values: values)
+    func insert<T>(into tableName:String, columns:[String]? = nil, values:[T], map:(id:Int,item:T)->[String:Any]) -> SQLiteError {
+        return insert(nil, into: tableName, columns: columns, values: values, map: map)
     }
-
-    // 单条插入部分字段
-    func insertOrReplace(into tableName:String, params:[String:Any]) -> Error {
-        var keyString = ""
-        var valueString = ""
-        for (key,value) in params {
-            if !keyString.isEmpty {
-                keyString += ", "
-                valueString += ", "
-            }
-            keyString += "\"\(key)\""
-            valueString += "\"\(value)\""
-        }
-        let sql = "INSERT OR REPLACE INTO \(tableName) (\(keyString)) values(\(valueString))"
-        return executeSQL(sql)
+    func insertOrReplace<T>(into tableName:String, columns:[String]? = nil, values:[T], map:(id:Int,item:T)->[String:Any]) -> SQLiteError {
+        return insert("OR REPLACE", into: tableName, columns: columns, values: values, map: map)
     }
-/*
-    private func getValue<T>(valueMirror:MirrorType, nilReplaceTo defaultValue:T?) -> T? {
-        var value:T? = nil
-        if valueMirror.disposition == .Optional {
-            if valueMirror.count > 0 {
-                value = valueMirror[0].1.value as? T
-            } else {
-                value = defaultValue
-            }
-        } else {
-            value = valueMirror.value as? T
-        }
-        return value
-    }
-*/
-    
-    func insertOrReplace<T : SQLiteDataBase>(into tableName:String, rows:[T]) -> Error {
-        let params = T.tableColumnTypes()
-        var columns:[String] = []
-        #if DEBUG
-        assert(params.count > 0, "模板类型没有返回表结构参数")
-        #endif
-        var keyString = ""
-        var valueString = ""
-        for (name, _, state) in params {
-            if !keyString.isEmpty {
-                keyString += ", "
-                valueString += ", "
-            }
-            keyString += "\"\(name)\""
-            if state.insertMask {
-                valueString += "Null"
-            } else {
-                valueString += "?"
-                columns.append(name)
-            }
-        }
-        //创建事务
-        beginTransaction()
-        
-        var error:Error = .OK
-        var hasError = false
-
-        let SQL = "INSERT OR REPLACE INTO \(tableName) (\(keyString)) values(\(valueString))"
-        if let rs:SQLiteBindSet = querySQL(SQL) as! SQLite.RowSet? {
-            //let length = rs.bindCount
-            for row in rows {
-                let mirror = _reflect(row)
-                var flag:CInt = SQLITE_ERROR
-                
-                for index in 1...columns.count {
-                    let key = columns[index-1]
-                    for i in 0..<mirror.count {
-                        let tuple = mirror[i]
-                        if key == tuple.0 {
-                            flag = rs.bindValue(tuple.1.value, index: index)
-                            break
-                        }
-                    }
-                    #if DEBUG
-                    assert(flag == SQLITE_OK, "绑定[\(key)]失败 value=\(row)")
-                    #endif
-                    if flag != SQLITE_OK {
-                        error = lastError //String.fromCString(sqlite3_errmsg(handle))
-                        //println("错误并跳过本组数据,因为给字段[\(key)]绑定值[\(row)]失败 ERROR \(error)")
-                        break;
-                    }
-                }
-                if flag == SQLITE_OK {
-                    let result = rs.step
-                    
-                    #if DEBUG
-                    assert(result == SQLITE_OK || result == SQLITE_DONE, "严重错误并回滚操作,绑定失败\(row)")
-                    #endif
-
-                    if result != SQLITE_OK && result != SQLITE_DONE {
-                        hasError = true
-                        error = lastError
-                        break
-                    } else {    // <- 否则数据写入成功
-                        rs.reset()
-                    }
-                } else {        // <- 否则数据绑定失败开始下一组
-                    rs.bindClear()
-                }
-            }
-        } else {
-            error = lastError
-            hasError = true
-        }
-        hasError ? rollbackTransaction() : commitTransaction()
-        return error
-    }
-    
-    func insertOrReplace(into tableName:String, _ columns:[String], values:(Int) -> [String:Any]?) -> Error {
-        var keyString = ""
-        var valueString = ""
-        
-        for column in columns {
-            if !keyString.isEmpty {
-                keyString += ", "
-                valueString += ", "
-            }
-            keyString += "\"\(column)\""
-            valueString += "?"
-        }
-        //创建事务
-        beginTransaction()
-        
-        var error:Error = .OK
-        var hasError = false
-        //获取插入句柄绑定
-        let SQL = "INSERT OR REPLACE INTO \(tableName) (\(keyString)) values(\(valueString))"
-        if let rs:SQLiteBindSet = querySQL(SQL) as! SQLite.RowSet? {
-            //let length = rs.bindCount
-            
-            var i = 0
-            while let params = values(i++) {
-                var flag:CInt = 0
-                for index in 1...columns.count {
-                    let key = columns[index-1]
-                    flag = rs.bindValue(params[key], index: index)
-                    #if DEBUG
-                    assert(flag == SQLITE_OK, "绑定[\(key)]失败 value=\(params[key])")
-                    #endif
-
-                    if flag != SQLITE_OK {
-                        error = lastError 
-                        //println("错误并跳过本组数据,因为给字段[\(key)]绑定值[\(values)]失败 ERROR \(error)")
-                        break;
-                    }
-                }
-                if flag == SQLITE_OK {
-                    let result = rs.step
-                    #if DEBUG
-                    assert(result == SQLITE_OK || result == SQLITE_DONE, "严重错误并回滚操作,绑定失败\(params)")
-                    #endif
-                    if result != SQLITE_OK && result != SQLITE_DONE {
-                        hasError = true
-                        error = lastError
-                        break
-                    } else {    // <- 否则数据写入成功
-                        rs.reset()
-                    }
-                } else {        // <- 否则数据绑定失败开始下一组
-                    rs.bindClear()
-                }
-            }
-            
-        } else {
-            error = lastError
-            hasError = true
-        }
-        hasError ? rollbackTransaction() : commitTransaction()
-        return error
+    func insertOrIgnore<T>(into tableName:String, columns:[String]? = nil, values:[T], map:(id:Int,item:T)->[String:Any]) -> SQLiteError {
+        return insert("OR IGNORE", into: tableName, columns: columns, values: values, map: map)
     }
 
 }
@@ -1044,58 +908,47 @@ extension SQLite.RowSet : SQLiteResultSet {
     }
 }
 
-
 // MARK: - SQLite 其他
 // MARK: ColumnState 头附加状态
-enum SQLColumnState : Int, CustomStringConvertible {
-    case None = 0
-    //case ForeignKey                 //外键 SQLite中好像没有约束作用,创建也会失败
-    case PrimaryKey                 //主键
-    case PrimaryKeyAutoincrement    //自动增量主键
-    case Autoincrement              //自动增量
-    case Unique                     //唯一的
-    case Check                      //检查
-    case NotNull                    //非空
+struct SQLColumnOptions : OptionSetType, CustomStringConvertible {
+    let rawValue: Int
+    init(rawValue: Int) { self.rawValue = rawValue }
+    
+    static let None = SQLColumnOptions(rawValue: 0)
+    static let PrimaryKey = SQLColumnOptions(rawValue: 1)
+    static let Autoincrement = SQLColumnOptions(rawValue: 2)
+    static let PrimaryKeyAutoincrement: SQLColumnOptions = [PrimaryKey, Autoincrement]
+    static let NotNull = SQLColumnOptions(rawValue: 4)
+    static let Unique = SQLColumnOptions(rawValue: 8)
+    static let Check: SQLColumnOptions = SQLColumnOptions(rawValue: 16)
+    static let ForeignKey: SQLColumnOptions = SQLColumnOptions(rawValue: 32)
+    
+    var description:String {
+        var result = ""
+        if contains(.PrimaryKey) { result.appendContentsOf(" PRIMARY KEY") }
+        if contains(.Autoincrement) { result.appendContentsOf(" AUTOINCREMENT") }
+        if contains(.NotNull) { result.appendContentsOf(" NOT NULL") }
+        if contains(.Unique) { result.appendContentsOf(" UNIQUE") }
+        if contains(.Check) { result.appendContentsOf(" CHECK") }
+        if contains(.ForeignKey) { result.appendContentsOf(" FOREIGN KEY") }
+        return result
+    }
+}
+
+enum SQLiteColumnType : CInt {
+    case integer = 1
+    case float
+    case text
+    case blob
+    case null
     
     var description:String {
         switch self {
-        case .PrimaryKey :
-            return " PRIMARY KEY"
-        case .PrimaryKeyAutoincrement :
-            return " PRIMARY KEY AUTOINCREMENT"
-        case .Autoincrement :
-            return " AUTOINCREMENT"
-        case .NotNull :
-            return " NOT NULL"
-        case .Unique :
-            return " UNIQUE"
-        //case .ForeignKey :
-        //    return " FOREIGN KEY"
-        case .Check :
-            return " CHECK"
-        default :
-            return ""
-        }
-    }
-    
-    var insertMask:Bool {
-        switch self {
-        case .PrimaryKey :
-            return false
-        case .PrimaryKeyAutoincrement :
-            return true
-        case .Autoincrement :
-            return true
-        case .NotNull :
-            return false
-        case .Unique :
-            return false
-        //case .ForeignKey :
-        //    return false
-        case .Check :
-            return false
-        default :
-            return false
+        case .integer:  return "INTEGER"
+        case .float:    return "FLOAT"
+        case .text:     return "TEXT"
+        case .blob:     return "BLOB"
+        case .null:     return "NULL"
         }
     }
 }
@@ -1216,120 +1069,117 @@ enum SQLColumnType : CustomStringConvertible{
     }
 }
 
-extension SQLite {
+enum SQLiteError : CInt, CustomStringConvertible, CustomDebugStringConvertible, ErrorType {
+    case OK         =  0//SQLITE_OK         Successful result
+    case ERROR      =  1//SQLITE_ERROR      SQL error or missing database
+    case INTERNAL   =  2//SQLITE_INTERNAL   Internal logic error in SQLite
+    case PERM       =  3//SQLITE_PERM       Access permission denied
+    case ABORT      =  4//SQLITE_ABORT      Callback routine requested an abort
+    case BUSY       =  5//SQLITE_BUSY       The database file is locked
+    case LOCKED     =  6//SQLITE_LOCKED     A table in the database is locked
+    case NOMEM      =  7//SQLITE_NOMEM      A malloc() failed
+    case READONLY   =  8//SQLITE_READONLY   Attempt to write a readonly database
+    case INTERRUPT  =  9//SQLITE_INTERRUPT  Operation terminated by sqlite3_interrupt()
+    case IOERR      = 10//SQLITE_IOERR      Some kind of disk I/O error occurred
+    case CORRUPT    = 11//SQLITE_CORRUPT    The database disk image is malformed
+    case NOTFOUND   = 12//SQLITE_NOTFOUND   Unknown opcode in sqlite3_file_control()
+    case FULL       = 13//SQLITE_FULL       Insertion failed because database is full
+    case CANTOPEN   = 14//SQLITE_CANTOPEN   Unable to open the database file
+    case PROTOCOL   = 15//SQLITE_PROTOCOL   Database lock protocol error
+    case EMPTY      = 16//SQLITE_EMPTY      Database is empty
+    case SCHEMA     = 17//SQLITE_SCHEMA     The database schema changed
+    case TOOBIG     = 18//SQLITE_TOOBIG     String or BLOB exceeds size limit
+    case CONSTRAINT = 19//SQLITE_CONSTRAINT Abort due to constraint violation
+    case MISMATCH   = 20//SQLITE_MISMATCH   Data type mismatch
+    case MISUSE     = 21//SQLITE_MISUSE     Library used incorrectly
+    case NOLFS      = 22//SQLITE_NOLFS      Uses OS features not supported on host
+    case AUTH       = 23//SQLITE_AUTH       Authorization denied
+    case FORMAT     = 24//SQLITE_FORMAT     Auxiliary database format error
+    case RANGE      = 25//SQLITE_RANGE      2nd parameter to sqlite3_bind out of range
+    case NOTADB     = 26//SQLITE_NOTADB     File opened that is not a database file
+    case NOTICE     = 27//SQLITE_NOTICE     Notifications from sqlite3_log()
+    case WARNING    = 28//SQLITE_WARNING    Warnings from sqlite3_log()
+    case ROW       = 100//SQLITE_ROW        sqlite3_step() has another row ready
+    case DONE      = 101//SQLITE_DONE       sqlite3_step() has finished executing
     
-    enum Error : CInt, CustomStringConvertible, CustomDebugStringConvertible, ErrorType {
-        case OK         =  0//SQLITE_OK         Successful result
-        case ERROR      =  1//SQLITE_ERROR      SQL error or missing database
-        case INTERNAL   =  2//SQLITE_INTERNAL   Internal logic error in SQLite
-        case PERM       =  3//SQLITE_PERM       Access permission denied
-        case ABORT      =  4//SQLITE_ABORT      Callback routine requested an abort
-        case BUSY       =  5//SQLITE_BUSY       The database file is locked
-        case LOCKED     =  6//SQLITE_LOCKED     A table in the database is locked
-        case NOMEM      =  7//SQLITE_NOMEM      A malloc() failed
-        case READONLY   =  8//SQLITE_READONLY   Attempt to write a readonly database
-        case INTERRUPT  =  9//SQLITE_INTERRUPT  Operation terminated by sqlite3_interrupt()
-        case IOERR      = 10//SQLITE_IOERR      Some kind of disk I/O error occurred
-        case CORRUPT    = 11//SQLITE_CORRUPT    The database disk image is malformed
-        case NOTFOUND   = 12//SQLITE_NOTFOUND   Unknown opcode in sqlite3_file_control()
-        case FULL       = 13//SQLITE_FULL       Insertion failed because database is full
-        case CANTOPEN   = 14//SQLITE_CANTOPEN   Unable to open the database file
-        case PROTOCOL   = 15//SQLITE_PROTOCOL   Database lock protocol error
-        case EMPTY      = 16//SQLITE_EMPTY      Database is empty
-        case SCHEMA     = 17//SQLITE_SCHEMA     The database schema changed
-        case TOOBIG     = 18//SQLITE_TOOBIG     String or BLOB exceeds size limit
-        case CONSTRAINT = 19//SQLITE_CONSTRAINT Abort due to constraint violation
-        case MISMATCH   = 20//SQLITE_MISMATCH   Data type mismatch
-        case MISUSE     = 21//SQLITE_MISUSE     Library used incorrectly
-        case NOLFS      = 22//SQLITE_NOLFS      Uses OS features not supported on host
-        case AUTH       = 23//SQLITE_AUTH       Authorization denied
-        case FORMAT     = 24//SQLITE_FORMAT     Auxiliary database format error
-        case RANGE      = 25//SQLITE_RANGE      2nd parameter to sqlite3_bind out of range
-        case NOTADB     = 26//SQLITE_NOTADB     File opened that is not a database file
-        case NOTICE     = 27//SQLITE_NOTICE     Notifications from sqlite3_log()
-        case WARNING    = 28//SQLITE_WARNING    Warnings from sqlite3_log()
-        case ROW       = 100//SQLITE_ROW        sqlite3_step() has another row ready
-        case DONE      = 101//SQLITE_DONE       sqlite3_step() has finished executing
-        
-        var description: String {
-            switch NSLocale.currentLocale().localeIdentifier {
-            case NSCalendarIdentifierChinese: return chineseDescription
-            default: return defaultDescription
-            }
+    var description: String {
+        switch NSLocale.currentLocale().localeIdentifier {
+        case NSCalendarIdentifierChinese: return chineseDescription
+        default: return defaultDescription
         }
-        
-        private var chineseDescription:String {
-            switch self {
-            case .OK          : return "操作成功"
-            case .ERROR       : return "SQL 语句错误 或 数据丢失"
-            case .INTERNAL    : return "SQLite 内部逻辑错误"
-            case .PERM        : return "拒绝存取"
-            case .ABORT       : return "回调函数请求取消操作"
-            case .BUSY        : return "数据库被他人使用(已锁定)"
-            case .LOCKED      : return "此表被其他人使用(已锁定)"
-            case .NOMEM       : return "内存不足"
-            case .READONLY    : return "不能在只读模式下写入数据库"
-            case .INTERRUPT   : return "操作被 sqlite3_interrupt() 终止"
-            case .IOERR       : return "磁盘 I/O 读写发生异常"
-            case .CORRUPT     : return "数据库磁盘镜像损坏"
-            case .NOTFOUND    : return "sqlite3_file_control() 找不到文件"
-            case .FULL        : return "数据库已满，插入失败"
-            case .CANTOPEN    : return "无法打开数据库文件"
-            case .PROTOCOL    : return "数据库接口锁定"
-            case .EMPTY       : return "数据库是空的"
-            case .SCHEMA      : return "数据库 schema 改变"
-            case .TOOBIG      : return "String 或 BLOB 大小超出限制"
-            case .CONSTRAINT  : return "违反规则强行中止"
-            case .MISMATCH    : return "数据类型不当"
-            case .MISUSE      : return "库Library 使用不当"
-            case .NOLFS       : return "系统 host 不支持"
-            case .AUTH        : return "授权失败"
-            case .FORMAT      : return "数据库格式化错误"
-            case .RANGE       : return "sqlite3_bind 第二个参数索引超出范围"
-            case .NOTADB      : return "文件并非数据库文件"
-            case .NOTICE      : return "sqlite3_log() 通知更新"
-            case .WARNING     : return "sqlite3_log() 警告更新"
-            case .ROW         : return "sqlite3_step() 另有一行数据已经就绪"
-            case .DONE        : return "sqlite3_step() 执行成功"
-            }
-        }
-        
-        private var defaultDescription:String {
-            switch self {
-            case .OK          : return "Successful result"
-            case .ERROR       : return "SQL error or missing database"
-            case .INTERNAL    : return "Internal logic error in SQLite"
-            case .PERM        : return "Access permission denied"
-            case .ABORT       : return "Callback routine requested an abort"
-            case .BUSY        : return "The database file is locked"
-            case .LOCKED      : return "A table in the database is locked"
-            case .NOMEM       : return "A malloc() failed"
-            case .READONLY    : return "Attempt to write a readonly database"
-            case .INTERRUPT   : return "Operation terminated by sqlite3_interrupt()"
-            case .IOERR       : return "Some kind of disk I/O error occurred"
-            case .CORRUPT     : return "The database disk image is malformed"
-            case .NOTFOUND    : return "Unknown opcode in sqlite3_file_control()"
-            case .FULL        : return "Insertion failed because database is full"
-            case .CANTOPEN    : return "Unable to open the database file"
-            case .PROTOCOL    : return "Database lock protocol error"
-            case .EMPTY       : return "Database is empty"
-            case .SCHEMA      : return "The database schema changed"
-            case .TOOBIG      : return "String or BLOB exceeds size limit"
-            case .CONSTRAINT  : return "Abort due to constraint violation"
-            case .MISMATCH    : return "Data type mismatch"
-            case .MISUSE      : return "Library used incorrectly"
-            case .NOLFS       : return "Uses OS features not supported on host"
-            case .AUTH        : return "Authorization denied"
-            case .FORMAT      : return "Auxiliary database format error"
-            case .RANGE       : return "2nd parameter to sqlite3_bind out of range"
-            case .NOTADB      : return "File opened that is not a database file"
-            case .NOTICE      : return "Notifications from sqlite3_log()"
-            case .WARNING     : return "Warnings from sqlite3_log()"
-            case .ROW         : return "sqlite3_step() has another row ready"
-            case .DONE        : return "sqlite3_step() has finished executing"
-            }
-        }
-        
-        var debugDescription: String { "Error code \(rawValue) is #define SQLITE_\(self) with \(description)" }
     }
+    
+    private var chineseDescription:String {
+        switch self {
+        case .OK          : return "操作成功"
+        case .ERROR       : return "SQL 语句错误 或 数据丢失"
+        case .INTERNAL    : return "SQLite 内部逻辑错误"
+        case .PERM        : return "拒绝存取"
+        case .ABORT       : return "回调函数请求取消操作"
+        case .BUSY        : return "数据库被他人使用(已锁定)"
+        case .LOCKED      : return "此表被其他人使用(已锁定)"
+        case .NOMEM       : return "内存不足"
+        case .READONLY    : return "不能在只读模式下写入数据库"
+        case .INTERRUPT   : return "操作被 sqlite3_interrupt() 终止"
+        case .IOERR       : return "磁盘 I/O 读写发生异常"
+        case .CORRUPT     : return "数据库磁盘镜像损坏"
+        case .NOTFOUND    : return "sqlite3_file_control() 找不到文件"
+        case .FULL        : return "数据库已满，插入失败"
+        case .CANTOPEN    : return "无法打开数据库文件"
+        case .PROTOCOL    : return "数据库接口锁定"
+        case .EMPTY       : return "数据库是空的"
+        case .SCHEMA      : return "数据库 schema 改变"
+        case .TOOBIG      : return "String 或 BLOB 大小超出限制"
+        case .CONSTRAINT  : return "违反规则强行中止"
+        case .MISMATCH    : return "数据类型不当"
+        case .MISUSE      : return "库Library 使用不当"
+        case .NOLFS       : return "系统 host 不支持"
+        case .AUTH        : return "授权失败"
+        case .FORMAT      : return "数据库格式化错误"
+        case .RANGE       : return "sqlite3_bind 第二个参数索引超出范围"
+        case .NOTADB      : return "文件并非数据库文件"
+        case .NOTICE      : return "sqlite3_log() 通知更新"
+        case .WARNING     : return "sqlite3_log() 警告更新"
+        case .ROW         : return "sqlite3_step() 另有一行数据已经就绪"
+        case .DONE        : return "sqlite3_step() 执行成功"
+        }
+    }
+    
+    private var defaultDescription:String {
+        switch self {
+        case .OK          : return "Successful result"
+        case .ERROR       : return "SQL error or missing database"
+        case .INTERNAL    : return "Internal logic error in SQLite"
+        case .PERM        : return "Access permission denied"
+        case .ABORT       : return "Callback routine requested an abort"
+        case .BUSY        : return "The database file is locked"
+        case .LOCKED      : return "A table in the database is locked"
+        case .NOMEM       : return "A malloc() failed"
+        case .READONLY    : return "Attempt to write a readonly database"
+        case .INTERRUPT   : return "Operation terminated by sqlite3_interrupt()"
+        case .IOERR       : return "Some kind of disk I/O error occurred"
+        case .CORRUPT     : return "The database disk image is malformed"
+        case .NOTFOUND    : return "Unknown opcode in sqlite3_file_control()"
+        case .FULL        : return "Insertion failed because database is full"
+        case .CANTOPEN    : return "Unable to open the database file"
+        case .PROTOCOL    : return "Database lock protocol error"
+        case .EMPTY       : return "Database is empty"
+        case .SCHEMA      : return "The database schema changed"
+        case .TOOBIG      : return "String or BLOB exceeds size limit"
+        case .CONSTRAINT  : return "Abort due to constraint violation"
+        case .MISMATCH    : return "Data type mismatch"
+        case .MISUSE      : return "Library used incorrectly"
+        case .NOLFS       : return "Uses OS features not supported on host"
+        case .AUTH        : return "Authorization denied"
+        case .FORMAT      : return "Auxiliary database format error"
+        case .RANGE       : return "2nd parameter to sqlite3_bind out of range"
+        case .NOTADB      : return "File opened that is not a database file"
+        case .NOTICE      : return "Notifications from sqlite3_log()"
+        case .WARNING     : return "Warnings from sqlite3_log()"
+        case .ROW         : return "sqlite3_step() has another row ready"
+        case .DONE        : return "sqlite3_step() has finished executing"
+        }
+    }
+    
+    var debugDescription: String { return "Error code \(rawValue) is #define SQLITE_\(self) with \(description)" }
 }
