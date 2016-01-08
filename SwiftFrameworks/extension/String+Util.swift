@@ -180,6 +180,11 @@ extension String {
     public func joinIn(prefix:String, _ suffix:String) -> String {
         return "\(prefix)\(self)\(suffix)"
     }
+    
+    public var isNumeric:Bool {
+        //let
+        return true
+    }
 }
 
 /*
