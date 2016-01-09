@@ -182,8 +182,17 @@ extension String {
     }
     
     public var isNumeric:Bool {
-        //let
-        return true
+        return matchRegular(try! NSRegularExpression(pattern: "[0-9]+\\.?[0-9]*", options: NSRegularExpressionOptions.CaseInsensitive))
+    }
+    
+    public var isInteger:Bool {
+        return matchRegular(try! NSRegularExpression(pattern: "[0-9]+", options: NSRegularExpressionOptions.CaseInsensitive))
+    }
+    
+    public func matchRegular(regular:NSRegularExpression) -> Bool {
+        let length = characters.count
+        let range = regular.rangeOfFirstMatchInString(self, options: NSMatchingOptions(rawValue: 0), range: NSMakeRange(0, length))
+        return range.location == 0 && range.length == length
     }
 }
 
