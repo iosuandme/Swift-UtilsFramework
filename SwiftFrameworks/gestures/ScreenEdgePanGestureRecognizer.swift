@@ -141,7 +141,7 @@ public class ScreenEdgePanGestureRecognizer: UIScreenEdgePanGestureRecognizer {
                 saveMaxMoved(touches)
                 state = .Changed
             } else {
-                state = .Cancelled
+                state = .Failed
                 //print("2全都不符合失败\(edge)")
             }
             return
