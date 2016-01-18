@@ -41,62 +41,57 @@ public class ScreenEdgePanGestureRecognizer: UIScreenEdgePanGestureRecognizer {
     
     override public func touchesBegan(touches: Set<UITouch>, withEvent event: UIEvent) {
         super.touchesBegan(touches, withEvent: event)
-        if case .Failed = state { state = .Possible }
-        print(state.rawValue)
-        if case .Possible = state {
+        // 如果不符合最小触碰条件则直接失败
+        if touches.count < minimumNumberOfTouches || minimumNumberOfTouches == 0 {
+            //print("不符合最小数量")
+            state = .Failed
+            return
+        }
+        
+        var edgeArray:[RectEdge] = []
+        if edges.contains(.Left)    { edgeArray.append(.Left) }
+        if edges.contains(.Right)   { edgeArray.append(.Right) }
+        if edges.contains(.Top)     { edgeArray.append(.Top) }
+        if edges.contains(.Bottom)  { edgeArray.append(.Bottom) }
+        
+        // 不同方向触控需要符合的条件
+        func isValidTouch(point:CGPoint, _ size:CGSize, withEdge edge:RectEdge) -> Bool {
+            switch edge {
+            case .Left:     return point.x < 25
+            case .Right:    return point.x + 25 > size.width
+            case .Top:      return point.y < 25
+            case .Bottom:   return point.y + 25 > size.height
+            }
+        }
+        
+        // 判断多个触控是否同时符合条件
+        func validTouches(touches:Set<UITouch>, withEdge edge:RectEdge) -> Bool {
+            var validTouches:Set<UITouch> = Set<UITouch>(minimumCapacity: minimumNumberOfTouches)
             
-            // 如果不符合最小触碰条件则直接失败
-            if touches.count < minimumNumberOfTouches || minimumNumberOfTouches == 0 {
-                //print("不符合最小数量")
-                state = .Failed
+            for var i:Int = 0; i < minimumNumberOfTouches; i++ {
+                let touch = touches[touches.startIndex.advancedBy(i)]
+                let point = touch.locationInView(touch.window)
+                
+                let size = touch.window?.bounds.size ?? UIScreen.mainScreen().bounds.size
+                // 符合左侧屏幕边缘条件
+                if isValidTouch(point, size, withEdge: edge) {
+                    validTouches.insert(touch)
+                }
+            }
+            return validTouches.count == minimumNumberOfTouches
+        }
+        
+        for edge in edgeArray {
+            if validTouches(touches, withEdge: edge) {
+                self.edge = edge
+                self.beganTouches = touches
+                self.limitationMoved = []
+                state = .Began
                 return
             }
-            
-
-            var edgeArray:[RectEdge] = []
-            if edges.contains(.Left)    { edgeArray.append(.Left) }
-            if edges.contains(.Right)   { edgeArray.append(.Right) }
-            if edges.contains(.Top)     { edgeArray.append(.Top) }
-            if edges.contains(.Bottom)  { edgeArray.append(.Bottom) }
-            
-            // 不同方向触控需要符合的条件
-            func isValidTouch(point:CGPoint, _ size:CGSize, withEdge edge:RectEdge) -> Bool {
-                switch edge {
-                case .Left:     return point.x < 25
-                case .Right:    return point.x + 25 > size.width
-                case .Top:      return point.y < 25
-                case .Bottom:   return point.y + 25 > size.height
-                }
-            }
-            
-            // 判断多个触控是否同时符合条件
-            func validTouches(touches:Set<UITouch>, withEdge edge:RectEdge) -> Bool {
-                var validTouches:Set<UITouch> = Set<UITouch>(minimumCapacity: minimumNumberOfTouches)
-                
-                for var i:Int = 0; i < minimumNumberOfTouches; i++ {
-                    let touch = touches[touches.startIndex.advancedBy(i)]
-                    let point = touch.locationInView(touch.window)
-                    
-                    let size = touch.window?.bounds.size ?? UIScreen.mainScreen().bounds.size
-                    // 符合左侧屏幕边缘条件
-                    if isValidTouch(point, size, withEdge: edge) {
-                        validTouches.insert(touch)
-                    }
-                }
-                return validTouches.count == minimumNumberOfTouches
-            }
-            
-            for edge in edgeArray {
-                if validTouches(touches, withEdge: edge) {
-                    self.edge = edge
-                    self.beganTouches = touches
-                    self.limitationMoved = []
-                    return
-                }
-            }
-            //print("1全都不符合失败")
-            state = .Failed
         }
+        //print("1全都不符合失败")
+        state = .Failed
     }
     
     
@@ -128,28 +123,25 @@ public class ScreenEdgePanGestureRecognizer: UIScreenEdgePanGestureRecognizer {
             }
             
             // 判断多个触控是否同时符合条件
-            func validTouches(touches:Set<UITouch>, withEdge edge:RectEdge) -> Bool {
-                var validTouches:Set<UITouch> = Set<UITouch>(minimumCapacity: minimumNumberOfTouches)
-                
-                for var i:Int = 0; i < minimumNumberOfTouches; i++ {
-                    let touch = touches[touches.startIndex.advancedBy(i)]
-                    let point = touch.locationInView(touch.window)
-                    let previousPoint = touch.previousLocationInView(touch.window)
-                    // 符合左侧屏幕边缘条件
-                    if isValidTouch(point, previousPoint, withEdge: edge) {
-                        validTouches.insert(touch)
-                    }
+            
+            var validTouches:Set<UITouch> = Set<UITouch>(minimumCapacity: minimumNumberOfTouches)
+            
+            for var i:Int = 0; i < minimumNumberOfTouches; i++ {
+                let touch = touches[touches.startIndex.advancedBy(i)]
+                let point = touch.locationInView(touch.window)
+                let previousPoint = touch.previousLocationInView(touch.window)
+                // 符合左侧屏幕边缘条件
+                if isValidTouch(point, previousPoint, withEdge: edge) {
+                    validTouches.insert(touch)
                 }
-                return validTouches.count == minimumNumberOfTouches
             }
             
-            if validTouches(touches, withEdge: edge) {
+            if validTouches.count == minimumNumberOfTouches {
                 self.limitationMoved = [CGFloat](count: minimumNumberOfTouches, repeatedValue: 0)
                 saveMaxMoved(touches)
-                state = .Began
-                print("Began:\(state.rawValue)")
+                state = .Changed
             } else {
-                state = .Failed
+                state = .Cancelled
                 //print("2全都不符合失败\(edge)")
             }
             return
