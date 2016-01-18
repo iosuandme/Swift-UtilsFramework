@@ -43,7 +43,13 @@ extension String {
 //        return label.sizeThatFits(size)
 //    }
     #endif
-    
+    func boundingRectWithSize(size: CGSize, defaultFont:UIFont = UIFont.systemFontOfSize(16), lineBreakMode:NSLineBreakMode = .ByWordWrapping) -> CGSize {
+        
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineBreakMode = lineBreakMode
+        return (self as NSString).boundingRectWithSize(size, options: [.UsesLineFragmentOrigin, .UsesFontLeading], attributes: [NSFontAttributeName:defaultFont, NSParagraphStyleAttributeName:paragraphStyle], context: nil).size
+        
+    }
     // MARK: - 取路径末尾文件名
     public var stringByDeletingPathPrefix:String {
         return self.componentsSeparatedByString("/").last!
