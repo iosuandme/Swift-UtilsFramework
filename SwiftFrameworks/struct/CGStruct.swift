@@ -9,6 +9,7 @@
 import Foundation
 
 extension CGRect {
+    // 求矩形中心
     var center:CGPoint {
         return CGPoint(x: origin.x + size.width / 2, y: origin.y + size.height / 2)
     }
@@ -16,6 +17,7 @@ extension CGRect {
 
 
 extension CGPoint {
+    // 指定圆心, 角度, 半径, 求终点坐标
     static func circlePointAtCenter(center:CGPoint, withAngle angle:CGFloat, andRadius radius:CGFloat) -> CGPoint {
         let radian = Double(angle) * M_PI / 180
         let x = radius * CGFloat(cos(radian))
