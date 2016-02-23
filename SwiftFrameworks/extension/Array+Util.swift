@@ -30,28 +30,6 @@ extension CollectionType {
         return result
     }
     
-    
-    // 利用闭包功能 获取数组元素某个属性值的数组
-    public func valuesFor<U>(includeElement: (Self.Generator.Element) -> U) -> [U] {
-        var result:[U] = []
-        for item:Self.Generator.Element in self {
-            result.append(includeElement(item))
-        }
-        return result
-    }
-    
-    // 利用闭包功能 获取符合条件数组元素 相关内容的数组
-    public func valuesFor<U>(includeElement: (Self.Generator.Element) -> U?) -> [U] {
-        var result:[U] = []
-        for item:Self.Generator.Element in self {
-            if let u:U = includeElement(item) {
-                result.append(u)
-            }
-        }
-        return result
-    }
-    
-    
     // 利用闭包功能 给数组添加 查找首个符合条件元素 的 方法
     public func find(includeElement: (Self.Generator.Element) -> Bool) -> Self.Generator.Element? {
         for item in self where includeElement(item) {
