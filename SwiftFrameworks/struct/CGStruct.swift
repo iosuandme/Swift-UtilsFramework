@@ -6,7 +6,7 @@
 //  Copyright © 2015年 小分队. All rights reserved.
 //
 
-import Foundation
+import UIKit
 
 extension CGRect {
     // 求矩形中心
