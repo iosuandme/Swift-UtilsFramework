@@ -245,6 +245,15 @@ public struct JSON {
             return false
         }
         
+        var count:Int {
+            switch (value) {
+            case .JSONObject(let dict)  : return dict.count
+            case .JSONArray(let array)  : return array.count
+            default : break
+            }
+            return 1
+        }
+        
     }
     
     public class Object : CollectionType, Indexable, SequenceType, DictionaryLiteralConvertible {
