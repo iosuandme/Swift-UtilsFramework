@@ -368,7 +368,7 @@ extension SQLite.Handle : SQLiteVersion {
 extension SQLite.Handle : SQLiteMove {
     // newTableName 必须不存在,系统自动创建
     func select(columns:[String]?, into newTableName:String, from oldTableName:String, Where:String?) throws {
-        let columnNames = columns?.componentsJoinedByString(", ") ?? "*"
+        let columnNames = columns?.joined(separator: ", ") ?? "*"
         var sql = "SELECT \(columnNames) INTO \(newTableName) FROM \(oldTableName)"
         if let condition = Where {
             sql.appendContentsOf(" WHERE \(condition)")
@@ -379,8 +379,8 @@ extension SQLite.Handle : SQLiteMove {
     
     // oldTableName 必须已存在
     func insert(or:String? = nil, into newTableName:String, select columns:[String:String]?, from oldTableName:String, Where:String?) -> SQLiteError {
-        let columnNames:String = columns?.keys.componentsJoinedByString(", ") ?? "*"
-        let oldColumnNames:String = columns?.values.componentsJoinedByString(", ") ?? "*"
+        let columnNames:String = columns?.keys.joined(separator: ", ") ?? "*"
+        let oldColumnNames:String = columns?.values.joined(separator: ", ") ?? "*"
         let orString = or?.joinIn(" ", "") ?? ""
         var sql = "INSERT\(orString) INTO \(newTableName)(\(columnNames)) SELECT \(oldColumnNames) FROM \(oldTableName)"
         if let condition = Where {
@@ -436,7 +436,7 @@ extension SQLite.Handle : SQLiteAlter {
 extension SQLite.Handle : SQLiteCreate {
     
 //    func createTableIfNotExists(tableName:String, params:[SQLColumn]) throws {
-//        let paramString = params.componentsJoinedByString(",") {
+//        let paramString = params.joined(separator: ",") {
 //            String(format: "\"\($0.0)\" \($0.1)\($0.2)%@", $0.3?.joinIn(" DEFAULT ", "") ?? "")
 //        }
 //        let sql = "CREATE TABLE IF NOT EXISTS \"\(tableName)\" (\(paramString))"
@@ -445,7 +445,7 @@ extension SQLite.Handle : SQLiteCreate {
 //    }
     
     func createTableIfNotExists(tableName:String, params:[SQLiteColumn]) throws {
-        let paramString = params.componentsJoinedByString(", ") {
+        let paramString = params.joined(separator: ", ") {
             String(format: "\($0.0) \($0.1)\($0.2)%@", $0.3?.joinIn(" DEFAULT ", "") ?? "")
         }
         let sql = "CREATE TABLE IF NOT EXISTS \(tableName) (\(paramString))"
@@ -492,7 +492,7 @@ extension SQLite.Handle : SQLiteCreateIndex {
         if columnNames.count == 0 {
             throw NSError(domain: "[\(tableName)]没有指定任何索引字段", code: 0, userInfo: ["index":indexName])
         }
-        let names = columnNames.componentsJoinedByString(", ")
+        let names = columnNames.joined(separator: ", ")
         let sql = "CREATE INDEX \(indexName) ON \(tableName)(\(names))"
         let error = execSQL(sql)
         guard case .OK = error else { throw error }
@@ -501,7 +501,7 @@ extension SQLite.Handle : SQLiteCreateIndex {
         if columnNames.count == 0 {
             throw NSError(domain: "[\(tableName)]没有指定任何索引字段", code: 0, userInfo: ["index":indexName])
         }
-        let names = columnNames.componentsJoinedByString(", ")
+        let names = columnNames.joined(separator: ", ")
         let sql = "CREATE UNIQUE INDEX \(indexName) ON \(tableName)(\(names))"
         let error = execSQL(sql)
         guard case .OK = error else { throw error }
@@ -562,7 +562,7 @@ extension SQLite.Handle : SQLiteDelete {
 extension SQLite.Handle : SQLiteSelect {
     // 查询数量
     func select(count columns:[String]?, from tableName:String, Where:String?) throws -> Int {
-        let columnNames = columns?.componentsJoinedByString(", ") ?? "*"
+        let columnNames = columns?.joined(separator: ", ") ?? "*"
         var sql = "SELECT count(\(columnNames)) FROM \(tableName)"
         if let end = Where {
             sql += " WHERE \(end)"
@@ -575,7 +575,7 @@ extension SQLite.Handle : SQLiteSelect {
     
     // 普通查询
     func select(columns:[String]?, from tableName:String, Where:String?) throws -> SQLiteResultSet {
-        let columnNames = columns?.componentsJoinedByString(", ") ?? "*"
+        let columnNames = columns?.joined(separator: ", ") ?? "*"
         var sql = "SELECT \(columnNames) FROM \(tableName)"
         if let condition = Where {
             sql.appendContentsOf(" WHERE \(condition)")
@@ -588,8 +588,8 @@ extension SQLite.Handle : SQLiteSelect {
     
     // 联合查询
     func select(columns:[String]?, from tables:[String:SQLTableName], Where:String?) throws -> SQLiteResultSet {
-        let columnNames = columns?.componentsJoinedByString(", ") ?? "*"
-        let paramString = tables.componentsJoinedByString(",") { "\($0.1) \($0.0)" }
+        let columnNames = columns?.joined(separator: ", ") ?? "*"
+        let paramString = tables.joined(separator: ",") { "\($0.1) \($0.0)" }
         var sql = "SELECT \(columnNames) FROM \(paramString)"
         if let condition = Where {
             sql.appendContentsOf(" WHERE \(condition)")
@@ -606,11 +606,11 @@ extension SQLite.Handle : SQLiteInsert {
     
     func insert(or:String?, into tableName:String, columns:[String]? = nil) throws -> (columns:[SQLite.Column], bindSet:SQLiteBindSet) {
         let orString = or?.joinIn(" ", "") ?? ""
-        let columnNames = columns?.componentsJoinedByString(", ").joinIn("(", ")") ?? ""
+        let columnNames = columns?.joined(separator: ", ").joinIn("(", ")") ?? ""
         let tableColumns = tableInfo(tableName)
         let length = columns?.count ?? tableColumns.count
         
-        let values = [String](count: length, repeatedValue: "?").componentsJoinedByString(", ")
+        let values = [String](count: length, repeatedValue: "?").joined(separator: ", ")
         let sql = "INSERT\(orString) INTO \(tableName)\(columnNames) VALUES(\(values))"
         guard let resultSet = try? querySQL(sql) else {
             throw lastError
