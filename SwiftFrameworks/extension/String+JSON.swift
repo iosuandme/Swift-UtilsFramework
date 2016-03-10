@@ -152,14 +152,14 @@ public struct JSON {
                 if case .JSONObject(let dict) = value {
                     dict[position] = newValue
                 } else {
-                    fatalError("[\(self)] isn't JSONArray ! and set \(newValue) fail !")
+                    fatalError("[\(self)] isn't JSONObject ! and set \(newValue) fail !")
                 }
             }
             get {
                 if case .JSONObject(let dict) = value {
                     return dict[position]
                 }
-                return ("JSON.Error",Value(error: "[\(self)] isn't JSONArray !"))
+                return ("JSON.Error",Value(error: "[\(self)] isn't JSONObject !"))
             }
         }
         
@@ -254,6 +254,12 @@ public struct JSON {
             return 1
         }
         
+        var isNull:Bool {
+            if case .JSONError = value {
+                return true
+            }
+            return false
+        }
     }
     
     public class Object : CollectionType, Indexable, SequenceType, DictionaryLiteralConvertible {
@@ -612,12 +618,22 @@ public func > (lhs: JSON.ObjectIndex, rhs: JSON.ObjectIndex) -> Bool {
 extension JSON.Value : CustomStringConvertible, CustomDebugStringConvertible {
     /// A textual representation of `self`.
     public var description: String {
-        
-        return "[\(self)]"
+        switch (value) {
+        case let .JSONObject(dict)  :
+            //let values = dict.map({ "\($0):\($1)" })
+            return "\(dict)"//"{\(values)}"
+        case let .JSONArray(array)  :
+            let values = array.componentsJoinedByString(", ")
+            return "[\(values)]"
+        case let .JSONNumber(num): return "\(num.floatValue)"
+        case let .JSONString(str): return "\"\(str)\""
+        case let .JSONError(error): return "\(error)"
+        }
+        //return "Unknow JSON"
     }
     /// A textual representation of `self`, suitable for debugging.
     public var debugDescription: String {
-        return "JSON.Value<\(self)>)"
+        return "JSON.Value<\(description)>)"
     }
 }
 
