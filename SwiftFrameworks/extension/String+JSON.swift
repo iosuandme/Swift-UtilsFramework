@@ -623,7 +623,7 @@ extension JSON.Value : CustomStringConvertible, CustomDebugStringConvertible {
             //let values = dict.map({ "\($0):\($1)" })
             return "\(dict)"//"{\(values)}"
         case let .JSONArray(array)  :
-            let values = array.componentsJoinedByString(", ")
+            let values = array.joined(separator: ", ")
             return "[\(values)]"
         case let .JSONNumber(num): return "\(num.floatValue)"
         case let .JSONString(str): return "\"\(str)\""
