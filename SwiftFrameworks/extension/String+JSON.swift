@@ -10,11 +10,13 @@ public struct JSON {
     }
     
     public static func getValue(o: AnyObject) -> Value {
+        
         switch(o) {
         case (let v as NSDictionary)    : return Value(v)
         case (let v as NSArray)         : return Value(v)
         case (let v as NSNumber)        : return Value(v)
         case (let v as String)          : return Value(v)
+        case (let v as NSNull)          : return Value(v)
         default                         : return Value(error: "JSON Unknow object: \(o)")
         }
     }
@@ -24,6 +26,7 @@ public struct JSON {
         case JSONArray  ([Value])
         case JSONString (String)
         case JSONNumber (NSNumber)
+        case JSONNull
         case JSONError  (String)
     }
     
@@ -37,9 +40,14 @@ public struct JSON {
         public init(error:String) {
             value = .JSONError(error)
         }
-        
+        public init(_ v: NSNull) {
+            self.value = .JSONNull
+        }
         public init(_ v: String) {
             self.value = .JSONString(v)
+        }
+        public init(_ v: Int64) {
+            self.value = .JSONNumber(NSNumber(longLong: v))
         }
         public init(_ v: Int) {
             self.value = .JSONNumber(NSNumber(integer: v))
@@ -249,20 +257,45 @@ public struct JSON {
             switch (value) {
             case .JSONObject(let dict)  : return dict.count
             case .JSONArray(let array)  : return array.count
+            case .JSONNull              : return 0
             default : break
             }
             return 1
         }
         
         var isNull:Bool {
-            if case .JSONError = value {
+            if case .JSONNull = value {
                 return true
             }
             return false
         }
+        
+        var isObject:Bool {
+            if case .JSONObject = value {
+                return true
+            }
+            return false
+        }
+        
+        var isArray:Bool {
+            if case .JSONArray = value {
+                return true
+            }
+            return false
+        }
+        
+        var isValue:Bool {
+            switch value {
+            case .JSONString: fallthrough
+            case .JSONNumber: return true
+            default: break
+            }
+            return false
+        }
+        
     }
     
-    public class Object : CollectionType, Indexable, SequenceType, DictionaryLiteralConvertible {
+    public class Object : CollectionType, MutableIndexable, SequenceType, DictionaryLiteralConvertible {
         
         private var _pointer:UnsafeMutablePointer<Int>
         private var _keys:Array<String>
@@ -563,6 +596,7 @@ public struct JSON {
             _dictionary = dictionary
         }
         
+        @warn_unused_result
         public mutating func next() -> (String, Value)? {
             if _position < _dictionary.count {
                 return _dictionary[ObjectIndex(rawValue: _position++)]
@@ -621,13 +655,16 @@ extension JSON.Value : CustomStringConvertible, CustomDebugStringConvertible {
         switch (value) {
         case let .JSONObject(dict)  :
             //let values = dict.map({ "\($0):\($1)" })
-            return "\(dict)"//"{\(values)}"
+            return dict.description
         case let .JSONArray(array)  :
             let values = array.joined(separator: ", ")
             return "[\(values)]"
-        case let .JSONNumber(num): return "\(num.floatValue)"
-        case let .JSONString(str): return "\"\(str)\""
-        case let .JSONError(error): return "\(error)"
+        case let .JSONNumber(num) : return "\(num.floatValue)"
+        case let .JSONString(str) :
+            let text = str.dataUsingEncoding(NSNonLossyASCIIStringEncoding)?.toUTF8String() ?? ""
+            return "\"\(text)\""
+        case let .JSONError(error): return "\"(--->\(error)<---)\""
+        case .JSONNull            : return "null"
         }
         //return "Unknow JSON"
     }
@@ -635,6 +672,8 @@ extension JSON.Value : CustomStringConvertible, CustomDebugStringConvertible {
     public var debugDescription: String {
         return "JSON.Value<\(description)>)"
     }
+    
+    
 }
 
 
@@ -644,9 +683,9 @@ extension JSON.Object : CustomStringConvertible, CustomDebugStringConvertible {
         var result:String = ""
         for var i:Int = 0; i<_count; i++ {
             if !result.isEmpty { result += ", " }
-            result += "\(_keys[i]): \(_values[i])"
+            result += "\"\(_keys[i])\": \(_values[i])"
         }
-        return "[\(result)]"
+        return "{\(result)}"
     }
     /// A textual representation of `self`, suitable for debugging.
     public var debugDescription: String {

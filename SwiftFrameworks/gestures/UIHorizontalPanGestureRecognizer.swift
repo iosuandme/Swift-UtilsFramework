@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import UIKit.UIGestureRecognizerSubclass    //必须引用此头才能覆盖 touchesBegan 等方法
 
 class UIHorizontalPanGestureRecognizer: UIPanGestureRecognizer {
 

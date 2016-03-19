@@ -7,7 +7,7 @@
 //
 
 import UIKit
-//#import <UIKit/UIGestureRecognizerSubclass.h> 必须引入此头文件
+import UIKit.UIGestureRecognizerSubclass    //必须引用此头才能覆盖 touchesBegan 等方法
 
 public class ScreenEdgePanGestureRecognizer: UIScreenEdgePanGestureRecognizer {
     

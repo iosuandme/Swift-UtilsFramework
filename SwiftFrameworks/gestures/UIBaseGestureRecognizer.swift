@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import UIKit.UIGestureRecognizerSubclass
 //#import <UIKit/UIGestureRecognizerSubclass.h> 必须引入此头文件
 
 //extension UITapGestureRecognizer {
