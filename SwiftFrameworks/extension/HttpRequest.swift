@@ -7,7 +7,11 @@ import Foundation
 public class HttpResponse {
     
     /// 访问结果 HTML 内容
-    public var content:String = ""
+    public var data:NSData?
+    public var content:String {
+        guard let data = data else { return "" }
+        return String(data: data, encoding: NSUTF8StringEncoding) ?? ""
+    }
     
     /// 附加信息
     public var tag:Any?
@@ -74,6 +78,7 @@ public class HttpRequest {
         self.tag  = tag
         self.headers = headers
         self.timeout = timeout
+        NSURLSessionTask
     }
     
     public convenience init(URL url:NSURL, tag:Any? = nil) {
@@ -98,7 +103,7 @@ public class HttpRequest {
             self.response = HttpDownload()
             fileHandle = NSFileHandle(forWritingAtPath: "\(localPath).download")
             
-            downloadResponse.content = localPath
+            downloadResponse.data = localPath.dataUsingEncoding(NSUTF8StringEncoding)
             downloadResponse.localSize = fileHandle?.seekToEndOfFile() ?? 0
         }
         
@@ -230,7 +235,7 @@ public class HttpRequest {
             self.connection = nil
             // 如果是Http访问
             if onComplete != nil {
-                httpResponse.content = NSString(data: receiveData!, encoding: NSUTF8StringEncoding)! as String
+                httpResponse.data = receiveData
             }
             receiveData = nil
             onStop()
