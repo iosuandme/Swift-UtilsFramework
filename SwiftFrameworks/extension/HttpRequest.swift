@@ -78,7 +78,7 @@ public class HttpRequest {
         self.tag  = tag
         self.headers = headers
         self.timeout = timeout
-        NSURLSessionTask
+        
     }
     
     public convenience init(URL url:NSURL, tag:Any? = nil) {
