@@ -69,7 +69,7 @@ public struct Date : CustomStringConvertible, CustomDebugStringConvertible, Hash
             } else {
                 return nil
                 #if DEBUG
-                    assert("日期字符串格式异常[\(v)] at line:\(__LINE__) at column:\(__COLUMN__)")//__FILE__,__FUNCTION__
+                    assert("日期字符串格式异常[\(v)] at line:\(#line) at column:\(#column)")//__FILE__,__FUNCTION__
                 #endif
             }
         }
@@ -84,7 +84,7 @@ public struct Date : CustomStringConvertible, CustomDebugStringConvertible, Hash
             return nil
 
             #if DEBUG
-                assert("日期字符串格式异常[\(v)] at line:\(__LINE__) at column:\(__COLUMN__)")//__FILE__,__FUNCTION__
+                assert("日期字符串格式异常[\(v)] at line:\(#line) at column:\(#column)")//__FILE__,__FUNCTION__
             #endif
         }
     }

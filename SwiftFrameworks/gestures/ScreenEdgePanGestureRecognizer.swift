@@ -22,7 +22,7 @@ public class ScreenEdgePanGestureRecognizer: UIScreenEdgePanGestureRecognizer {
             limitationMoved.appendContentsOf([CGFloat](count: minimumNumberOfTouches - limitationMoved.count, repeatedValue: 0.0))
         }
         
-        for var i:Int = 0; i < minimumNumberOfTouches; i++ {
+        for i:Int in 0 ..< minimumNumberOfTouches {
             let index = touches.startIndex.advancedBy(i)
             let began = beganTouches[index]
             let touch = touches[index]
@@ -68,7 +68,7 @@ public class ScreenEdgePanGestureRecognizer: UIScreenEdgePanGestureRecognizer {
         func validTouches(touches:Set<UITouch>, withEdge edge:RectEdge) -> Bool {
             var validTouches:Set<UITouch> = Set<UITouch>(minimumCapacity: minimumNumberOfTouches)
             
-            for var i:Int = 0; i < minimumNumberOfTouches; i++ {
+            for i:Int in 0 ..< minimumNumberOfTouches {
                 let touch = touches[touches.startIndex.advancedBy(i)]
                 let point = touch.locationInView(touch.window)
                 
@@ -126,7 +126,7 @@ public class ScreenEdgePanGestureRecognizer: UIScreenEdgePanGestureRecognizer {
             
             var validTouches:Set<UITouch> = Set<UITouch>(minimumCapacity: minimumNumberOfTouches)
             
-            for var i:Int = 0; i < minimumNumberOfTouches; i++ {
+            for i:Int in 0 ..< minimumNumberOfTouches {
                 let touch = touches[touches.startIndex.advancedBy(i)]
                 let point = touch.locationInView(touch.window)
                 let previousPoint = touch.previousLocationInView(touch.window)
@@ -157,7 +157,7 @@ public class ScreenEdgePanGestureRecognizer: UIScreenEdgePanGestureRecognizer {
             return
         }
         
-        for var i:Int = 0; i < minimumNumberOfTouches; i++ {
+        for i:Int in 0 ..< minimumNumberOfTouches {
             let index = touches.startIndex.advancedBy(i)
             let began = beganTouches[index]
             let touch = touches[index]

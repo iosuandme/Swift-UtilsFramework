@@ -107,7 +107,7 @@ public struct JSON {
         public required init(arrayLiteral elements: Value...) {
             var values:[Value] = []
             let length = elements.count
-            for (var i:Int = 0; i<length; i++) {
+            for i:Int in 0 ..< length {
                 values.append(elements[i])
             }
             self.value = .JSONArray(values)
@@ -121,7 +121,7 @@ public struct JSON {
         public required init(dictionaryLiteral elements: (String, Value)...) {
             let length = elements.count
             let value:Object = Object(minimumCapacity: length)
-            for (var i:Int = 0; i<length; i++) {
+            for i:Int in 0 ..< length {
                 value.putValue(elements[i].1, forKey: elements[i].0)
             }
             self.value = .JSONObject(value)
@@ -346,7 +346,7 @@ public struct JSON {
         /// present in the dictionary.
         public func indexForKey(key: String) -> Index? {
             let hasValue = key.hashValue
-            for var i:Int = 0; i < _count; i++ {
+            for i:Int in 0 ..< _count {
                 if _pointer.advancedBy(_offset + i).memory == hasValue { return ObjectIndex(rawValue: i) }
             }
             return nil
@@ -518,7 +518,7 @@ public struct JSON {
             _values = []
             _values.reserveCapacity(_capacity)
             _pointer = UnsafeMutablePointer<Int>.alloc(_capacity)
-            for var i:Int = 0; i<_capacity; i++ {
+            for i:Int in 0 ..< _capacity {
                 let element = elements[i]
                 _pointer.advancedBy(i).initialize(element.0.hashValue)
                 _keys.append(element.0)
@@ -681,7 +681,7 @@ extension JSON.Object : CustomStringConvertible, CustomDebugStringConvertible {
     /// A textual representation of `self`.
     public var description: String {
         var result:String = ""
-        for var i:Int = 0; i<_count; i++ {
+        for i:Int in 0 ..< _count {
             if !result.isEmpty { result += ", " }
             result += "\"\(_keys[i])\": \(_values[i])"
         }

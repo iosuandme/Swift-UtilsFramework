@@ -165,7 +165,7 @@ extension String {
             for char:Character in characters {
                 switch char {
                 case " ", "\n", "\r", "\r\n", "\t":   // \r\n 是一个字符  \n\r 是2个字符
-                    start++
+                    start += 1
                 default:
                     return substringFromIndex(start)
                 }
@@ -175,7 +175,7 @@ extension String {
             for char:Character in chars {
                 switch char {
                 case " ", "\n", "\r", "\r\n", "\t":   // \r\n 是一个字符  \n\r 是2个字符
-                    start++
+                    start += 1
                 default:
                     return substringToIndex(chars.count - start)
                 }
