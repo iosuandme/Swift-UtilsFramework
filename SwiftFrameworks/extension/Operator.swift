@@ -5,7 +5,7 @@
 //  Created by 慧趣小歪 on 16/3/25.
 //  Copyright © 2016年 小分队. All rights reserved.
 //
-//  那些曾被Swift删除但是否有用的运算符
+//  那些曾被Swift删除但是很有用的运算符
 //
 
 import Foundation
