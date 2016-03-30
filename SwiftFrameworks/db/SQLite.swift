@@ -212,7 +212,12 @@ class SQLite {
         self.path = path
         self.onUpgrade = onUpgrade
         self.version = version
-        assert(version > 0 || DEBUG != 1, "version must more than zero")
+        if version == 0 {
+        #if DEBUG
+            fatalError("version must more than zero")
+        #endif
+        }
+        
         setVersion(version)
     }
     // 适合 iOS
@@ -246,7 +251,9 @@ class SQLite {
     private func setVersion(version: UInt) {
         // 打开数据库
         guard let sqlHandle = try? open() else {
-            assert(DEBUG != 1, "无法打开数据库")
+        #if DEBUG
+            fatalError("无法打开数据库")
+        #endif
             return
         }
         let handle = sqlHandle as! SQLite.Handle
@@ -358,7 +365,12 @@ extension SQLite.Handle : SQLiteVersion {
         }
         set {
             let result = pragmaSQL("PRAGMA user_version = \(newValue)")
-            assert(result == SQLITE_OK && DEBUG == 1, "set version error:\(lastError)")
+            
+            #if DEBUG
+            if result != SQLITE_OK {
+                fatalError("version must more than zero")
+            }
+            #endif
         }
 
     }
@@ -625,9 +637,9 @@ extension SQLite.Handle : SQLiteInsert {
         }
         let bindSet = result.bindSet
         var flag:CInt = SQLITE_ERROR
-        for var i:Int = 0; i<values.count; i++ {
+        for i:Int in 0 ..< values.count {
             flag = bindSet.bindValue(values[i], index: i + 1)
-            assert(flag == SQLITE_OK || flag == SQLITE_ROW || DEBUG != 1, "绑定[\(i)]失败 value=\(values[i])")
+            assert(flag == SQLITE_OK || flag == SQLITE_ROW, "绑定[\(i)]失败 value=\(values[i])")
             if flag != SQLITE_OK && flag != SQLITE_ROW { break }
         }
         if flag == SQLITE_OK || flag == SQLITE_ROW {
@@ -672,7 +684,7 @@ extension SQLite.Handle : SQLiteInsert {
         // 获取最后一次插入的ID
         beginTransaction()
         var flag:CInt = SQLITE_ERROR
-        for var i:Int = 0; i<columnFields.count; i++ {
+        for i:Int in 0 ..< columnFields.count {
             let value:Int? = columnFields[i].primaryKey ? nil : 1
             bindSet.bindValue(value, index: i + 1)
         }
@@ -690,7 +702,7 @@ extension SQLite.Handle : SQLiteInsert {
         for value in values {
             
             let dict = map(id: Int(truncatingBitPattern: lastInsertID), item: value)
-            for var i:Int = 0; i<columnFields.count; i++ {
+            for i:Int in 0 ..< columnFields.count {
                 let key = columnFields[i].name
                 flag = bindSet.bindValue(dict[key], index: i + 1)
                 if flag != SQLITE_OK && flag != SQLITE_ROW { break }
@@ -698,7 +710,9 @@ extension SQLite.Handle : SQLiteInsert {
             if flag == SQLITE_OK || flag == SQLITE_ROW {
                 flag = bindSet.step
                 if flag != SQLITE_OK && flag != SQLITE_DONE {
-                    assert(DEBUG != 1, "无法绑定数据[\(dict)] 到[\(columnFields)]")
+                #if DEBUG
+                    fatalError("无法绑定数据[\(dict)] 到[\(columnFields)]")
+                #endif
                     bindSet.bindClear()     //如果失败则绑定下一组
                 } else {
                     bindSet.reset()
@@ -742,7 +756,7 @@ extension SQLite {
             var columns:[String] = []
             for i:CInt in 0..<length {
                 let name:UnsafePointer<CChar> = sqlite3_column_name(_stmt,i)
-                columns.append(String.fromCString(name)!)
+                columns.append(String.fromCString(name)!.lowercaseString)
             }
             //print(columns)
             self.columns = columns
@@ -941,7 +955,7 @@ extension SQLite.RowSet : SQLiteResultSet {
     }
     
     func getColumnIndex(columnName:String) -> Int {
-        return columns.indexOf({ $0 == columnName }) ?? NSNotFound
+        return columns.indexOf({ $0.lowercaseString == columnName }) ?? NSNotFound
     }
     
     func getUInt(columnName:String) -> UInt {
@@ -951,13 +965,13 @@ extension SQLite.RowSet : SQLiteResultSet {
         return Int(truncatingBitPattern: getInt64(columnName))
     }
     func getInt64(columnName:String) -> Int64 {
-        guard let index = columns.indexOf({ $0 == columnName }) else {
+        guard let index = columns.indexOf({ $0.lowercaseString == columnName }) else {
             return 0
         }
         return sqlite3_column_int64(_stmt, CInt(index))
     }
     func getDouble(columnName:String) -> Double {
-        guard let index = columns.indexOf({ $0 == columnName }) else {
+        guard let index = columns.indexOf({ $0.lowercaseString == columnName }) else {
             return 0
         }
         return sqlite3_column_double(_stmt, CInt(index))
@@ -966,14 +980,14 @@ extension SQLite.RowSet : SQLiteResultSet {
         return Float(getDouble(columnName))
     }
     func getString(columnName:String) -> String! {
-        guard let index = columns.indexOf({ $0 == columnName }) else {
+        guard let index = columns.indexOf({ $0.lowercaseString == columnName }) else {
             return nil
         }
         let result = sqlite3_column_text(_stmt, CInt(index))
         return String.fromCString(UnsafePointer<CChar>(result))
     }
     func getData(columnName:String) -> NSData! {
-        guard let index = columns.indexOf({ $0 == columnName }) else {
+        guard let index = columns.indexOf({ $0.lowercaseString == columnName }) else {
             return nil
         }
         let data:UnsafePointer<Void> = sqlite3_column_blob(_stmt, CInt(index))
@@ -981,7 +995,7 @@ extension SQLite.RowSet : SQLiteResultSet {
         return NSData(bytes:data, length: Int(size))
     }
     func getDate(columnName:String) -> NSDate! {
-        guard let index = columns.indexOf({ $0 == columnName }) else {
+        guard let index = columns.indexOf({ $0.lowercaseString == columnName }) else {
             return nil
         }
         let columnType = sqlite3_column_type(_stmt, CInt(index))

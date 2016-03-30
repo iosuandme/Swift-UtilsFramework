@@ -5,6 +5,7 @@ import UIKit
 import Foundation
 #endif
 
+let EmptyString = ""
 extension String {
     
     

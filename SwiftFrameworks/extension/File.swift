@@ -137,6 +137,12 @@ public struct File : Equatable, CustomStringConvertible, CustomDebugStringConver
     }
     public var isExists:Bool { return NSFileManager.defaultManager().fileExistsAtPath(fullPath) }
     
+    subscript(subFileName:String) -> File? {
+        for file in subFileList where file.fileName == subFileName {
+            return file
+        }
+        return nil
+    }
     // MARK: 所有子文件
     public var subFileList:[File] {
         var files:[File] = []
