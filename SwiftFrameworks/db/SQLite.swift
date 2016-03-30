@@ -955,7 +955,7 @@ extension SQLite.RowSet : SQLiteResultSet {
     }
     
     func getColumnIndex(columnName:String) -> Int {
-        return columns.indexOf({ $0.lowercaseString == columnName }) ?? NSNotFound
+        return columns.indexOf({ $0 == columnName.lowercaseString }) ?? NSNotFound
     }
     
     func getUInt(columnName:String) -> UInt {
@@ -965,13 +965,13 @@ extension SQLite.RowSet : SQLiteResultSet {
         return Int(truncatingBitPattern: getInt64(columnName))
     }
     func getInt64(columnName:String) -> Int64 {
-        guard let index = columns.indexOf({ $0.lowercaseString == columnName }) else {
+        guard let index = columns.indexOf({ $0 == columnName.lowercaseString }) else {
             return 0
         }
         return sqlite3_column_int64(_stmt, CInt(index))
     }
     func getDouble(columnName:String) -> Double {
-        guard let index = columns.indexOf({ $0.lowercaseString == columnName }) else {
+        guard let index = columns.indexOf({ $0 == columnName.lowercaseString }) else {
             return 0
         }
         return sqlite3_column_double(_stmt, CInt(index))
@@ -980,14 +980,14 @@ extension SQLite.RowSet : SQLiteResultSet {
         return Float(getDouble(columnName))
     }
     func getString(columnName:String) -> String! {
-        guard let index = columns.indexOf({ $0.lowercaseString == columnName }) else {
+        guard let index = columns.indexOf({ $0 == columnName.lowercaseString }) else {
             return nil
         }
         let result = sqlite3_column_text(_stmt, CInt(index))
         return String.fromCString(UnsafePointer<CChar>(result))
     }
     func getData(columnName:String) -> NSData! {
-        guard let index = columns.indexOf({ $0.lowercaseString == columnName }) else {
+        guard let index = columns.indexOf({ $0 == columnName.lowercaseString }) else {
             return nil
         }
         let data:UnsafePointer<Void> = sqlite3_column_blob(_stmt, CInt(index))
@@ -995,7 +995,7 @@ extension SQLite.RowSet : SQLiteResultSet {
         return NSData(bytes:data, length: Int(size))
     }
     func getDate(columnName:String) -> NSDate! {
-        guard let index = columns.indexOf({ $0.lowercaseString == columnName }) else {
+        guard let index = columns.indexOf({ $0 == columnName.lowercaseString }) else {
             return nil
         }
         let columnType = sqlite3_column_type(_stmt, CInt(index))
