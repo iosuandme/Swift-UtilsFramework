@@ -10,6 +10,7 @@
 
 import Foundation
 
+prefix operator * {}
 prefix operator ++ {}
 prefix operator -- {}
 postfix operator -- {}
@@ -29,6 +30,17 @@ infix operator ^= {
 associativity right
 precedence 90
 assignment
+}
+
+// MARK: - * 指针
+/// Replace `i` with its `successor()` and return the original value of `i`.
+@warn_unused_result
+prefix public func *<T>(any: T) -> UnsafePointer<T> {
+    var a = any
+    return getPointer(&a)
+}
+private func getPointer<T>(pointer:UnsafePointer<T>) -> UnsafePointer<T> {
+    return pointer
 }
 
 // MARK: - ++
