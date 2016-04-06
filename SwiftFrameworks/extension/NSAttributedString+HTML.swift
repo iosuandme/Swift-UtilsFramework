@@ -45,7 +45,7 @@ extension NSAttributedString {
         label.font = defaultFont
         label.numberOfLines = 0
         label.attributedText = self
-        return label.sizeThatFits(size)
+        return label.textRectForBounds(CGRect(origin: CGPointZero, size: size), limitedToNumberOfLines: 0).size//label.sizeThatFits(size)
     }
     
 #elseif os (OSX)
