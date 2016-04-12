@@ -32,6 +32,25 @@ precedence 90
 assignment
 }
 
+// MARK: - 遍历枚举
+protocol Enumerable: Hashable {
+    func enumerate() -> AnyGenerator<Self>
+}
+extension Enumerable {
+    func enumerate() -> AnyGenerator<Self> {
+        return enumerateEnum(Self)
+    }
+}
+/// Enumerate enum type with `for v in Enum`
+func enumerateEnum<T: Hashable>(_: T.Type) -> AnyGenerator<T> {
+    var i = 0
+    return AnyGenerator {
+        let next = withUnsafePointer(&i) { UnsafePointer<T>($0).memory }
+        return next.hashValue == i++ ? next : nil
+    }
+}
+
+
 // MARK: - * 指针
 /// Replace `i` with its `successor()` and return the original value of `i`.
 @warn_unused_result
