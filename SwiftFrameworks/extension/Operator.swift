@@ -33,11 +33,11 @@ assignment
 }
 
 // MARK: - 遍历枚举
-protocol Enumerable: Hashable {
+public protocol Enumerable: Hashable {
     func enumerate() -> AnyGenerator<Self>
 }
 extension Enumerable {
-    func enumerate() -> AnyGenerator<Self> {
+    public func enumerate() -> AnyGenerator<Self> {
         return enumerateEnum(Self)
     }
 }
