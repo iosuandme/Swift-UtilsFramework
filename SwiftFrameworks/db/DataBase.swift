@@ -10,6 +10,243 @@
 
 import Foundation
 
+/// TableObject mast extends `DataBaseTableType` protocol
+public protocol DataBaseTableType {
+    /// TableColumn mast extends `DataBaseColumnProtocol` protocol
+    associatedtype Column: RawRepresentable, DataBaseColumnProtocol
+}
+
+/// DBObject mast extends `DataBaseType` protocol and use final class
+public protocol DataBaseType {
+    associatedtype Table: RawRepresentable
+    var fullPath:String { get }
+    
+    /// class mast be use `final`, if version changed, mast `alter table`
+    func onVersionChanged(db:DataBaseHandle<Self>, oldVersion:Int, newVersion:Int) -> Bool
+    
+    // MARK: - open data base function
+    /// mast set version bigger than `1` at `init`
+    func setVersion(version:Int)
+    func open() throws -> DataBaseHandle<Self>
+}
+
+// MARK: - realize sqlite3
+extension DataBaseType {
+    
+    public func setVersion(newVersion:Int) {
+        guard let db = try? open() else {
+        #if DEBUG
+            fatalError("无法打开数据库")
+        #endif
+            return
+        }
+        
+        let oldVersion = db.version
+        if oldVersion != newVersion {
+            // 如果变化则调用更新函数来更新字段
+            if onVersionChanged(db, oldVersion: oldVersion, newVersion: newVersion) {
+                db.version = newVersion
+            }
+        }
+    }
+
+    // MARK: base sql function
+    public func open() throws -> DataBaseHandle<Self> {
+        var handle:COpaquePointer = nil
+        let dbPath:NSString = fullPath
+        let dirPath = dbPath.stringByDeletingLastPathComponent
+        let fileManager:NSFileManager = NSFileManager.defaultManager()
+        var isDir:ObjCBool = false
+        
+        if !fileManager.fileExistsAtPath(dirPath, isDirectory: &isDir) || isDir {
+            try fileManager.createDirectoryAtPath(dirPath, withIntermediateDirectories: true, attributes: nil)
+        }
+        
+        let result = sqlite3_open(dbPath.UTF8String, &handle)
+        if result != SQLITE_OK {
+            sqlite3_close(handle)
+            throw DataBaseError(rawValue: result)!
+        }
+        
+        return DataBaseHandle(handle, Self.self)
+    }
+}
+
+public class DataBaseHandle<DB:DataBaseType> {
+    // 通过 SQLite 的 open 函数获得一个 Handle
+    private var _handle:COpaquePointer = nil
+    init(_ handle:COpaquePointer, _:DB.Type) {
+        _handle = handle
+    }
+    
+    deinit { if _handle != nil { sqlite3_close(_handle) }  }
+    
+    var version:Int {
+        get {
+            var stmt:COpaquePointer = nil
+            if SQLITE_OK == sqlite3_prepare_v2(_handle, "PRAGMA user_version", -1, &stmt, nil) {
+                defer { sqlite3_finalize(stmt) }
+                return SQLITE_ROW == sqlite3_step(stmt) ? Int(sqlite3_column_int(stmt, 0)) : 0
+            }
+            return -1
+        }
+        set { sqlite3_exec(_handle, "PRAGMA user_version = \(newValue)", nil, nil, nil) }
+    }
+    
+    public var lastError:ErrorType {
+        let errorCode = sqlite3_errcode(_handle)
+        if let error = SQLiteError(rawValue: errorCode) {
+            return error
+        }
+        let errorDescription = String.fromCString(sqlite3_errmsg(_handle)) ?? ""
+        return NSError(domain: errorDescription, code: Int(errorCode), userInfo: nil)
+    }
+    private var _lastSQL:String?
+    public var lastSQL:String { return _lastSQL ?? "" }
+}
+
+// MARK: - transaction 事务
+extension DataBaseHandle {
+    // MARK: 开启事务 BEGIN TRANSACTION
+    func beginTransaction() -> CInt {
+        return sqlite3_exec(_handle,"BEGIN TRANSACTION",nil,nil,nil)
+    }
+    // MARK: 提交事务 COMMIT TRANSACTION
+    func commitTransaction() -> CInt {
+        return sqlite3_exec(_handle,"COMMIT TRANSACTION",nil,nil,nil)
+    }
+    // MARK: 回滚事务 ROLLBACK TRANSACTION
+    func rollbackTransaction() -> CInt {
+        return sqlite3_exec(_handle,"ROLLBACK TRANSACTION",nil,nil,nil)
+    }
+}
+
+// MARK: - base execute sql function
+extension DataBaseHandle {
+    public func exec(sql:String) throws {
+        _lastSQL = sql
+        let flag = sqlite3_exec(_handle, sql, nil, nil, nil)
+        if flag != SQLITE_OK { throw SQLiteError(rawValue: flag)! }
+    }
+    
+    public func query<T:DataBaseTableType>(_:T.Type, sql:String) throws -> DataBaseResultSet<T> {
+        var stmt:COpaquePointer = nil
+        _lastSQL = sql
+        if SQLITE_OK != sqlite3_prepare_v2(_handle, sql, -1, &stmt, nil) {
+            sqlite3_finalize(stmt)
+            throw lastError
+        }
+        return DataBaseResultSet(stmt, T.self)
+    }
+}
+
+// MARK: - create table
+extension DataBaseHandle {
+    private func exec<T:DataBaseTableType>(_:T.Type, createTable table:DB.Table, _ otherSQL:String) throws {
+        var params:String = ""
+        for column in enumerateEnum(T.Column.self) {
+            if !params.isEmpty { params += ", " }
+            params += "\(column.rawValue) \(column.type)\(column.option)"
+            if let value = column.defaultValue { params += " DEFAULT \(value)" }
+        }
+        try exec("CREATE TABLE\(otherSQL) \(table.rawValue) (\(params))")
+    }
+    
+    public func exec<DataBaseTable:DataBaseTableType>(_:DataBaseTable.Type, createTable table:DB.Table) throws {
+        try exec(DataBaseTable.self, createTable:table, "")
+    }
+    public func exec<DataBaseTable:DataBaseTableType>(_:DataBaseTable.Type, createTableIfNotExists table:DB.Table) throws {
+        try exec(DataBaseTable.self, createTable:table, "")
+    }
+}
+
+// MARK: - select table
+extension DataBaseHandle {
+    public func query<T:DataBaseTableType>(_:T.Type, SELECT columns:[T.Column]?, FROM table:DB.Table, WHERE:String?) throws -> DataBaseResultSet<T> {
+        let columnNames = columns?.joined(separator: ",") { "\($0.rawValue)" } ?? "*"
+        var sql = "SELECT \(columnNames) FROM \(table.rawValue)"
+        if let condition = WHERE where !condition.isEmpty {
+            sql.appendContentsOf(" WHERE \(condition)")
+        }
+        return try query(T.self, sql: sql)
+    }
+    public func query<T:DataBaseTableType>(_:T.Type, SELECT_COUNT columns:[T.Column]?, FROM table:DB.Table, WHERE:String?) throws -> Int {
+        let columnNames = columns?.joined(separator: ",") { "\($0.rawValue)" } ?? "*"
+        var sql = "SELECT COUNT(\(columnNames)) FROM \(table.rawValue)"
+        if let condition = WHERE where !condition.isEmpty  {
+            sql.appendContentsOf(" WHERE \(condition)")
+        }
+        guard let rs = try? query(T.self, sql: sql) else {
+            throw lastError
+        }
+        rs.next
+        return rs.firstValue()
+    }
+}
+
+// MARK: - alert table
+extension DataBaseHandle {
+    // 修改数据表名
+    func exec(ALERT_TABLE oldTableName:String, RENAME_TO newTable:DB.Table) throws {
+        try exec("ALTER TABLE \(oldTableName) RENAME TO \(newTable.rawValue)")
+    }
+    // 修改数据表 列名
+    func exec<T:DataBaseTableType>(_:T.Type, ALERT_TABLE table:DB.Table, RENAME_COLUMN oldColumnName:String, TO newColumn:T.Column) throws {
+        try exec("ALTER TABLE \(table.rawValue) RENAME COLUMN \(oldColumnName) TO \(newColumn.rawValue)")
+    }
+    // 修改数据表 列类型
+    func exec<T:DataBaseTableType>(_:T.Type, ALERT_TABLE table:DB.Table, MODIFY column:T.Column, _ columnType:SQLColumnType) throws {
+        try exec("ALTER TABLE \(table.rawValue) MODIFY \(column.rawValue) \(columnType)")
+    }
+    // 修改数据表 插入列
+    func exec<T:DataBaseTableType>(_:T.Type, ALERT_TABLE table:DB.Table, ADD column:T.Column, _ columnType:SQLColumnType) throws {
+        try exec("ALTER TABLE \(table.rawValue) ADD \(column.rawValue) \(columnType)")
+    }
+    // 修改数据表 删除列
+    func exec<T:DataBaseTableType>(_:T.Type, ALERT_TABLE table:DB.Table, DROP_COLUMN columnName:String) throws {
+        try exec("ALTER TABLE \(table.rawValue) DROP COLUMN \(columnName)")
+    }
+}
+
+// MARK: - create table index
+extension DataBaseHandle {
+    private func exec<T:DataBaseTableType>(_:T.Type, CREATE other:String, INDEX indexName:String, ON table:DB.Table, columns:[T.Column]) throws {
+        if columns.count == 0 {
+            throw NSError(domain: "[\(table.rawValue)]没有指定任何索引字段", code: 0, userInfo: ["index":indexName])
+        }
+        let names = columns.joined(separator: ", ")
+        try exec("CREATE\(other) INDEX \(indexName) ON \(table.rawValue)(\(names))")
+    }
+    func exec<T:DataBaseTableType>(_:T.Type, CREATE_INDEX indexName:String, ON table:DB.Table, columns:T.Column...) throws {
+        try exec(T.self, CREATE: "", INDEX: indexName, ON: table, columns: columns)
+    }
+    func exec<T:DataBaseTableType>(_:T.Type, CREATE_UNIQUE_INDEX indexName:String, ON table:DB.Table, columns:T.Column...) throws {
+        try exec(T.self, CREATE: " UNIQUE", INDEX: indexName, ON: table, columns: columns)
+    }
+}
+
+// MARK: - updata
+extension DataBaseHandle {
+    func exec<T:DataBaseTableType>(_:T.Type, UPDATE table:DB.Table, SET params:[T.Column:Any], WHERE:String?) throws {
+        var paramString = params.joined(separator: ", ") { "\($0.0.rawValue) = \($0.1)" }
+        if let condition = WHERE where !condition.isEmpty {
+            paramString += " WHERE \(condition)"
+        }
+        try exec("UPDATE \(table.rawValue) SET \(paramString)")
+    }
+}
+
+// MARK: - delete
+extension DataBaseHandle {
+    // 删除
+    func exec(DELETE_FROM table:DB.Table, WHERE:String?) throws {
+        var sql = "DELETE FROM \(table.rawValue)"
+        if let condition = WHERE where !condition.isEmpty {
+            sql.appendContentsOf(" WHERE \(condition)")
+        }
+        try exec(sql)
+    }
+}
 
 // MARK: - protocols 接口
 public protocol DataBaseRowSetType {
@@ -20,8 +257,6 @@ public protocol DataBaseRowSetType {
     func close()
 }
 //结果集
-
-
 
 public class DataBaseRowSet<T:DataBaseTableType> {
     private var _stmt:COpaquePointer = nil
@@ -281,155 +516,7 @@ public class DataBaseResultSet<T:DataBaseTableType>: DataBaseRowSet<T> {
         }
         
     }
-
-}
-
-public protocol DataBaseTableType {
-    associatedtype Column: RawRepresentable, DataBaseColumnProtocol
-
-
-}
-
-
-public protocol DataBaseType {
-    associatedtype Table: RawRepresentable
-    var version:Int { get }
     
-    var fullPath:String { get }
-    
-    func onVersionChanged(handle:DataBaseHandle, oldVersion:Int, newVersion:Int) -> Bool
-    
-    // MARK: - init
-    init(path:String)
-    
-    // MARK: - base sql function
-    func open() throws -> DataBaseHandle
-    
-    func query<T:DataBaseTableType>(handle:DataBaseHandle, _:T.Type, sql:String) throws -> DataBaseResultSet<T>
-    func exec(handle:DataBaseHandle, sql:String) throws
-    
-    // MARK: - create table
-    func exec<DataBaseTable:DataBaseTableType>(handle:DataBaseHandle, _:DataBaseTable.Type, createTable table:Table) throws
-    func exec<DataBaseTable:DataBaseTableType>(handle:DataBaseHandle, _:DataBaseTable.Type, createTableIfNotExists table:Table) throws
-    
-    // MARK: - select table
-    func query<T:DataBaseTableType>(handle:DataBaseHandle, _:T.Type, SELECT columns:[T.Column]?, FROM table:Table, WHERE:String?) throws -> DataBaseResultSet<T>
-    func query<T:DataBaseTableType>(handle:DataBaseHandle, _:T.Type, SELECT_COUNT columns:[T.Column]?, FROM table:Table, WHERE:String?) throws -> Int
-}
-
-// MARK: - realize sqlite3
-extension DataBaseType {
-    
-    // MARK: base sql function
-    public func open() throws -> DataBaseHandle {
-        var handle:COpaquePointer = nil
-        let dbPath:NSString = fullPath
-        let dirPath = dbPath.stringByDeletingLastPathComponent
-        let fileManager:NSFileManager = NSFileManager.defaultManager()
-        var isDir:ObjCBool = false
-        
-        if !fileManager.fileExistsAtPath(dirPath, isDirectory: &isDir) || isDir {
-            try fileManager.createDirectoryAtPath(dirPath, withIntermediateDirectories: true, attributes: nil)
-        }
-        
-        let result = sqlite3_open(dbPath.UTF8String, &handle)
-        if result != SQLITE_OK {
-            sqlite3_close(handle)
-            throw DataBaseError(rawValue: result)!
-        }
-        return DataBaseHandle(handle: handle)
-    }
-    
-    public func exec(handle:DataBaseHandle, sql:String) throws {
-        handle._lastSQL = sql
-        let flag = sqlite3_exec(handle._handle, sql, nil, nil, nil)
-        if flag != SQLITE_OK { throw SQLiteError(rawValue: flag)! }
-    }
-    
-    public func query<T:DataBaseTableType>(handle:DataBaseHandle, _:T.Type, sql:String) throws -> DataBaseResultSet<T> {
-        var stmt:COpaquePointer = nil
-        handle._lastSQL = sql
-        if SQLITE_OK != sqlite3_prepare_v2(handle._handle, sql, -1, &stmt, nil) {
-            sqlite3_finalize(stmt)
-            throw handle.lastError
-        }
-        return DataBaseResultSet(stmt, T.self)
-        //throw NSError(domain: "", code: 0, userInfo: nil)
-    }
-    
-    // MARK: create table
-    private func exec<T:DataBaseTableType>(handle:DataBaseHandle, _:T.Type, createTable table:Table, _ otherSQL:String) throws {
-        var params:String = ""
-        for column in enumerateEnum(T.Column.self) {
-            if !params.isEmpty { params += ", " }
-            params += "\(column.rawValue) \(column.type)\(column.option)"
-            if let value = column.defaultValue { params += " DEFAULT \(value)" }
-        }
-        try exec(handle, sql:"CREATE TABLE\(otherSQL) \(table.rawValue) (\(params))")
-    }
-    
-    public func exec<DataBaseTable:DataBaseTableType>(handle:DataBaseHandle, _:DataBaseTable.Type, createTable table:Table) throws {
-        try exec(handle, DataBaseTable.self, createTable:table, "")
-    }
-    public func exec<DataBaseTable:DataBaseTableType>(handle:DataBaseHandle, _:DataBaseTable.Type, createTableIfNotExists table:Table) throws {
-        try exec(handle, DataBaseTable.self, createTable:table, "")
-    }
-    
-    // MARK: select table
-    public func query<T:DataBaseTableType>(handle:DataBaseHandle, _:T.Type, SELECT columns:[T.Column]?, FROM table:Table, WHERE:String?) throws -> DataBaseResultSet<T> {
-        let columnNames = columns?.joined(separator: ",") { "\($0.rawValue)" } ?? "*"
-        var sql = "SELECT \(columnNames) FROM \(table.rawValue)"
-        if let condition = WHERE {
-            sql.appendContentsOf(" WHERE \(condition)")
-        }
-        return try query(handle, T.self, sql: sql)
-    }
-    public func query<T:DataBaseTableType>(handle:DataBaseHandle, _:T.Type, SELECT_COUNT columns:[T.Column]?, FROM table:Table, WHERE:String?) throws -> Int {
-        let columnNames = columns?.joined(separator: ",") { "\($0.rawValue)" } ?? "*"
-        var sql = "SELECT COUNT(\(columnNames)) FROM \(table.rawValue)"
-        if let condition = WHERE {
-            sql.appendContentsOf(" WHERE \(condition)")
-        }
-        guard let rs = try? query(handle, T.self, sql: sql) else {
-            throw handle.lastError
-        }
-        rs.next
-        return rs.firstValue()
-
-    }
-}
-
-public class DataBaseHandle {
-    // 通过 SQLite 的 open 函数获得一个 Handle
-    private var _handle:COpaquePointer = nil
-    init(handle:COpaquePointer) {
-        _handle = handle
-    }
-    
-    deinit { if _handle != nil { sqlite3_close(_handle) }  }
-    
-    var version:Int {
-        get {
-            var stmt:COpaquePointer = nil
-            if SQLITE_OK == sqlite3_prepare_v2(_handle, "PRAGMA user_version", -1, &stmt, nil) {
-                defer { sqlite3_finalize(stmt) }
-                return SQLITE_ROW == sqlite3_step(stmt) ? Int(sqlite3_column_int(stmt, 0)) : 0
-            }
-            return -1
-        }
-        set { sqlite3_exec(_handle, "PRAGMA user_version = \(newValue)", nil, nil, nil) }
-    }
-    
-    public var lastError:ErrorType {
-        let errorCode = sqlite3_errcode(_handle)
-        if let error = SQLiteError(rawValue: errorCode) {
-            return error
-        }
-        let errorDescription = String.fromCString(sqlite3_errmsg(_handle)) ?? ""
-        return NSError(domain: errorDescription, code: Int(errorCode), userInfo: nil)
-    }
-    private var _lastSQL:String?
-    public var lastSQL:String { return _lastSQL ?? "" }
 }
 
 
@@ -467,19 +554,19 @@ public struct DataBaseColumnOptions : OptionSetType, CustomStringConvertible {
 
 // MARK: - ColumnType
 public enum DataBaseColumnType : CInt, CustomStringConvertible {
-    case integer = 1
-    case float
-    case text
-    case blob
-    case null
+    case Integer = 1
+    case Float
+    case Text
+    case Blob
+    case Null
     
     public var description:String {
         switch self {
-        case .integer:  return "INTEGER"
-        case .float:    return "FLOAT"
-        case .text:     return "TEXT"
-        case .blob:     return "BLOB"
-        case .null:     return "NULL"
+        case .Integer:  return "INTEGER"
+        case .Float:    return "FLOAT"
+        case .Text:     return "TEXT"
+        case .Blob:     return "BLOB"
+        case .Null:     return "NULL"
         }
     }
 }
