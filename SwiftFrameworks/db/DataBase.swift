@@ -97,7 +97,7 @@ public class DBHandle<DB:DBType> {
     
     public var lastError:ErrorType {
         let errorCode = sqlite3_errcode(_handle)
-        if let error = SQLiteError(rawValue: errorCode) {
+        if let error = DBError(rawValue: errorCode) {
             return error
         }
         let errorDescription = String.fromCString(sqlite3_errmsg(_handle)) ?? ""
@@ -128,8 +128,9 @@ extension DBHandle {
     public func exec(sql:String) throws {
         _lastSQL = sql
         let flag = sqlite3_exec(_handle, sql, nil, nil, nil)
-        if flag != SQLITE_OK { throw SQLiteError(rawValue: flag)! }
+        if flag != SQLITE_OK { throw DBError(rawValue: flag)! }
     }
+    
     public func query(sql:String) throws -> DBRowSet {
         var stmt:COpaquePointer = nil
         _lastSQL = sql
@@ -139,8 +140,11 @@ extension DBHandle {
         }
         return DBRowSet(stmt)
     }
+    
     public func query<T:DBTableType>(_:T.Type, sql:String) throws -> DBResultSet<T> {
-        return DBResultSet(try query(sql)._stmt, T.self)
+        let rowSet = try query(sql)
+        defer { rowSet._stmt = nil }
+        return DBResultSet(rowSet._stmt, T.self)
     }
 }
 
@@ -148,11 +152,23 @@ extension DBHandle {
 extension DBHandle {
     private func exec<T:DBTableType>(_:T.Type, createTable table:DB.Table, _ otherSQL:String) throws {
         var params:String = ""
+        var constraintKeys:[T.Column] = []
+        var constraintPrimaryKey:T.Column? = nil
         for column in enumerateEnum(T.Column.self) {
             if !params.isEmpty { params += ", " }
-            params += "\(column.rawValue) \(column.type)\(column.option)"
-            if let value = column.defaultValue { params += " DEFAULT \(value)" }
+            if column.option.contains(.ConstraintPrimaryKey) {
+                constraintPrimaryKey = column
+            } else {
+                if column.option.contains(.ConstraintKey) { constraintKeys.append(column) }
+                params += "\(column.rawValue) \(column.type)\(column.option)"
+                if let value = column.defaultValue { params += " DEFAULT \(value)" }
+            }
         }
+        if let constraintPrimaryKey = constraintPrimaryKey where constraintKeys.count > 0 {
+            let keys = constraintKeys.joined(separator: ", ") { "\($0.rawValue)" }
+            params.appendContentsOf(", CONSTRAINT \(constraintPrimaryKey.rawValue) PRIMARY KEY (\(keys))")
+        }
+        
         try exec("CREATE TABLE\(otherSQL) \(table.rawValue) (\(params))")
     }
     
@@ -160,27 +176,28 @@ extension DBHandle {
         try exec(DataBaseTable.self, createTable:table, "")
     }
     public func exec<DataBaseTable:DBTableType>(_:DataBaseTable.Type, createTableIfNotExists table:DB.Table) throws {
-        try exec(DataBaseTable.self, createTable:table, "")
+        try exec(DataBaseTable.self, createTable:table, " IF NOT EXISTS")
     }
 }
 
 // MARK: - select table
 extension DBHandle {
-    public func query<T:DBTableType>(_:T.Type, SELECT columns:[T.Column]?, FROM table:DB.Table, WHERE:String?, ORDER_BY orders:T.Column...) throws -> DBResultSet<T> {
-        let columnNames = columns?.joined(separator: ",") { "\($0.rawValue)" } ?? "*"
+    
+    public func query<T:DBTableType>(_:T.Type, SELECT columns:[T.Column], FROM table:DB.Table, WHERE:String? = nil) throws -> DBResultSet<T> {
+        let columnNames = columns.count > 0 ? columns.joined(separator: ",") { "\($0.rawValue)" } : "*"
         var sql = "SELECT \(columnNames) FROM \(table.rawValue)"
         if let condition = WHERE where !condition.isEmpty {
             sql.appendContentsOf(" WHERE \(condition)")
         }
-        if orders.count > 0 {
-            let orderBy = orders.joined(separator: ", ") { "\($0.rawValue)" }
-            sql += " ORDER BY \(orderBy)"
-        }
+//        if orders.count > 0 {
+//            let orderBy = orders.joined(separator: ", ") //{ "\($0.rawValue)" }
+//            sql += " ORDER BY \(orderBy)"
+//        }
         return try query(T.self, sql: sql)
     }
     
-    public func query<T:DBTableType>(_:T.Type, SELECT_COUNT columns:[T.Column]?, FROM table:DB.Table, WHERE:String?) throws -> Int {
-        let columnNames = columns?.joined(separator: ",") { "\($0.rawValue)" } ?? "*"
+    public func query<T:DBTableType>(_:T.Type, SELECT_COUNT columns:[T.Column], FROM table:DB.Table, WHERE:String? = nil) throws -> Int {
+        let columnNames = columns.count > 0 ? columns.joined(separator: ",") { "\($0.rawValue)" } : "*"
         var sql = "SELECT COUNT(\(columnNames)) FROM \(table.rawValue)"
         if let condition = WHERE where !condition.isEmpty  {
             sql.appendContentsOf(" WHERE \(condition)")
@@ -190,11 +207,13 @@ extension DBHandle {
         return rs.firstValue()
     }
     
-    public func query<LT:DBTableType,RT:DBTableType>(_:LT.Type, _:RT.Type, SELECT lcolumns:[LT.Column]?, _ rcolumns:[RT.Column]?, FROM ltable:DB.Table, LEFT_JOIN rtable:DB.Table, ON lc:LT.Column, equal rc:RT.Column, WHERE:String?, ORDER_BY orders:LT.Column...) throws -> DBResultSet<LT> {
-        var columnNames = lcolumns?.joined(separator: ", ") { "\(ltable.rawValue).\($0.rawValue)" }
-        columnNames?.appendContentsOf(rcolumns?.joined(separator: ", ") { "\(rtable.rawValue).\($0.rawValue)" } ?? "")
-        let names = columnNames ?? "*"
-        var sql = "SELECT \(names) FROM \(ltable.rawValue) LEFT JOIN \(rtable.rawValue) ON \(lc.rawValue)=\(rc.rawValue)"
+    public func query<LT:DBTableType,RT:DBTableType>(_:LT.Type, _:RT.Type, SELECT lcolumns:[LT.Column], _ rcolumns:[RT.Column], FROM ltable:DB.Table, LEFT_JOIN rtable:DB.Table, ON lc:LT.Column, equal rc:RT.Column, WHERE:String? = nil, ORDER_BY orders:LT.Column...) throws -> DBResultSet<LT> {
+        var columnNames = lcolumns.joined(separator: ",") { "\(ltable.rawValue).\($0.rawValue)" }
+        if rcolumns.count > 0 {
+            columnNames.appendContentsOf(rcolumns.joined(separator: ", ") { "\(rtable.rawValue).\($0.rawValue)" } ?? "")
+        }
+        columnNames = columnNames.isEmpty ? "*" : columnNames
+        var sql = "SELECT \(columnNames) FROM \(ltable.rawValue) LEFT JOIN \(rtable.rawValue) ON \(lc.rawValue)=\(rc.rawValue)"
         if let condition = WHERE where !condition.isEmpty {
             sql += " WHERE \(condition)"
         }
@@ -338,7 +357,7 @@ extension DBHandle {
         if flag == SQLITE_OK || flag == SQLITE_DONE {
             rollbackTransaction()
         } else {
-            throw DBError(rawValue: flag) ?? SQLiteError.CUSTOM
+            throw DBError(rawValue: flag) ?? DBError.CUSTOM
         }
         bindSet.reset()
         var lastInsertID = sqlite3_last_insert_rowid(_handle)
@@ -372,7 +391,7 @@ extension DBHandle {
             commitTransaction()
         } else {
             rollbackTransaction()
-            throw SQLiteError(rawValue: flag) ?? SQLiteError.ERROR
+            throw DBError(rawValue: flag) ?? DBError.ERROR
         }
     }
     
@@ -687,15 +706,20 @@ public struct DataBaseColumnOptions : OptionSetType, CustomStringConvertible {
     static let Unique           = DataBaseColumnOptions(rawValue: 1 << 3)
     static let Check            = DataBaseColumnOptions(rawValue: 1 << 4)
     static let ForeignKey       = DataBaseColumnOptions(rawValue: 1 << 5)
+    static let ConstraintKey    = DataBaseColumnOptions(rawValue: 1 << 6)       // 属于联合主键
+    static let ConstraintPrimaryKey = DataBaseColumnOptions(rawValue: 1 << 7)   // 联合主键名
     
     public var description:String {
         var result = ""
+        
         if contains(.PrimaryKey)    { result.appendContentsOf(" PRIMARY KEY") }
         if contains(.Autoincrement) { result.appendContentsOf(" AUTOINCREMENT") }
         if contains(.NotNull)       { result.appendContentsOf(" NOT NULL") }
         if contains(.Unique)        { result.appendContentsOf(" UNIQUE") }
         if contains(.Check)         { result.appendContentsOf(" CHECK") }
         if contains(.ForeignKey)    { result.appendContentsOf(" FOREIGN KEY") }
+        if contains(.ConstraintKey) { result.appendContentsOf(" NOT NULL") }
+
         return result
     }
 }
