@@ -36,6 +36,7 @@ extension DBType {
     
     public func setVersion(newVersion:Int) {
         guard let db = try? open() else {
+            print("无法打开数据库:")
         #if DEBUG
             fatalError("无法打开数据库")
         #endif
@@ -155,10 +156,11 @@ extension DBHandle {
         var constraintKeys:[T.Column] = []
         var constraintPrimaryKey:T.Column? = nil
         for column in enumerateEnum(T.Column.self) {
-            if !params.isEmpty { params += ", " }
             if column.option.contains(.ConstraintPrimaryKey) {
                 constraintPrimaryKey = column
             } else {
+                if !params.isEmpty { params += ", " }
+                
                 if column.option.contains(.ConstraintKey) { constraintKeys.append(column) }
                 params += "\(column.rawValue) \(column.type)\(column.option)"
                 if let value = column.defaultValue { params += " DEFAULT \(value)" }
@@ -292,21 +294,22 @@ extension DBHandle {
 // MARK: - insert
 extension DBHandle {
     
-    public func exec<T:DBTableType>(_:T.Type, INSERT OR:String?, INTO table:DB.Table, _ columns:[T.Column]? = nil) throws  -> DBBindSet {
+    public func exec<T:DBTableType>(_:T.Type, INSERT OR:String?, INTO table:DB.Table, _ columns:[T.Column] = []) throws  -> DBBindSet {
         let orString = OR?.trim().joinIn(" ", "") ?? ""
-        let columnNames = columns?.joined(separator: ", ",includeElement: {"\($0.rawValue)"}).joinIn("(", ")") ?? ""
+        let columnNames = columns.count > 0 ? columns.joined(separator: ", ",includeElement: {"\($0.rawValue)"}).joinIn("(", ")") : ""
         var tableColumnsCount = 0
         for _ in enumerateEnum(T.Column.self) {
             tableColumnsCount += 1
         }
-        let length = columns?.count ?? tableColumnsCount
+        let length = columns.count > 0 ? columns.count : tableColumnsCount
         let values = [String](count: length, repeatedValue: "?").joined(separator: ", ")
         
         let rowSet = try query("INSERT\(orString) INTO \(table.rawValue)\(columnNames) VALUES(\(values))")
+        defer { rowSet._stmt = nil }
         return DBBindSet(rowSet._stmt)
     }
     
-    private func exec<T:DBTableType>(_:T.Type, INSERT OR:String?, INTO table:DB.Table, _ columns:[T.Column]? = nil, VALUES:[Any]) throws {
+    private func exec<T:DBTableType>(_:T.Type, INSERT OR:String?, INTO table:DB.Table, _ columns:[T.Column] = [], VALUES:[Any]) throws {
         let bindSet = try exec(T.self, INSERT: OR, INTO: table, columns)
         var flag:CInt = SQLITE_ERROR
         for i:Int in 0 ..< VALUES.count {
@@ -322,23 +325,23 @@ extension DBHandle {
         }
     }
     
-    public func exec<T:DBTableType>(_:T.Type, INSERT_INTO table:DB.Table, _ columns:[T.Column]? = nil, VALUES values:Any...) throws -> Int {
+    public func exec<T:DBTableType>(_:T.Type, INSERT_INTO table:DB.Table, _ columns:[T.Column] = [], VALUES values:Any...) throws -> Int {
         try exec(T.self, INSERT: nil, INTO: table, columns, VALUES: values)
         return Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle))
     }
-    public func exec<T:DBTableType>(_:T.Type, INSERT_OR_REPLACE_INTO table:DB.Table, _ columns:[T.Column]? = nil, VALUES values:Any...) throws -> Int {
+    public func exec<T:DBTableType>(_:T.Type, INSERT_OR_REPLACE_INTO table:DB.Table, _ columns:[T.Column] = [], VALUES values:Any...) throws -> Int {
         try exec(T.self, INSERT: "OR REPLACE", INTO: table, columns, VALUES: values)
         return Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle))
     }
-    public func exec<T:DBTableType>(_:T.Type, INSERT_OR_IGNORE_INTO table:DB.Table, _ columns:[T.Column]? = nil, VALUES values:Any...) throws -> Int {
+    public func exec<T:DBTableType>(_:T.Type, INSERT_OR_IGNORE_INTO table:DB.Table, _ columns:[T.Column] = [], VALUES values:Any...) throws -> Int {
         try exec(T.self, INSERT: "OR IGNORE", INTO: table, columns, VALUES: values)
         return Int(truncatingBitPattern: sqlite3_last_insert_rowid(_handle))
     }
     
-    public func exec<T:DBTableType, Item>(_:T.Type, INSERT OR:String?, INTO table:DB.Table, _ columns:[T.Column]? = nil, VALUES values:[Item], map:(id:Int, item:Item) -> [T.Column:Any]) throws {
+    public func exec<T:DBTableType, Item>(_:T.Type, INSERT OR:String?, INTO table:DB.Table, _ columns:[T.Column] = [], VALUES values:[Item], map:(id:Int, item:Item) -> [T.Column:Any]) throws {
         let bindSet = try exec(T.self, INSERT: OR, INTO: table, columns)
         var columnFields:[T.Column] = []
-        if let columns = columns {
+        if columns.count > 0 {
             columnFields = columns
         } else {
             for column in enumerateEnum(T.Column.self) {
@@ -395,13 +398,13 @@ extension DBHandle {
         }
     }
     
-    public func exec<T:DBTableType, Item>(_:T.Type, INSERT_INTO table:DB.Table, _ columns:[T.Column]? = nil, VALUES values:[Item], map:(id:Int, item:Item) -> [T.Column:Any]) throws {
+    public func exec<T:DBTableType, Item>(_:T.Type, INSERT_INTO table:DB.Table, _ columns:[T.Column] = [], VALUES values:[Item], map:(id:Int, item:Item) -> [T.Column:Any]) throws {
         try exec(T.self, INSERT: nil, INTO: table, VALUES: values, map: map)
     }
-    public func exec<T:DBTableType, Item>(_:T.Type, INSERT_OR_REPLACE_INTO table:DB.Table, _ columns:[T.Column]? = nil, VALUES values:[Item], map:(id:Int, item:Item) -> [T.Column:Any]) throws {
+    public func exec<T:DBTableType, Item>(_:T.Type, INSERT_OR_REPLACE_INTO table:DB.Table, _ columns:[T.Column] = [], VALUES values:[Item], map:(id:Int, item:Item) -> [T.Column:Any]) throws {
         try exec(T.self, INSERT: "OR REPLACE", INTO: table, VALUES: values, map: map)
     }
-    public func exec<T:DBTableType, Item>(_:T.Type, INSERT_OR_IGNORE_INTO table:DB.Table, _ columns:[T.Column]? = nil, VALUES values:[Item], map:(id:Int, item:Item) -> [T.Column:Any]) throws {
+    public func exec<T:DBTableType, Item>(_:T.Type, INSERT_OR_IGNORE_INTO table:DB.Table, _ columns:[T.Column] = [], VALUES values:[Item], map:(id:Int, item:Item) -> [T.Column:Any]) throws {
         try exec(T.self, INSERT: "OR IGNORE", INTO: table, VALUES: values, map: map)
     }
 }
