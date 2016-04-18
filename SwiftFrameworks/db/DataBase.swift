@@ -10,7 +10,7 @@
 
 import Foundation
 
-
+let DBNull = DataBaseNull()
 /// TableObject mast extends `DataBaseTableType` protocol
 public protocol DBTableType {
     /// TableColumn mast extends `DataBaseColumnProtocol` protocol
@@ -475,6 +475,10 @@ public class DBBindSet: DBRowSet {
         
         if let v = columnValue {
             switch v {
+            case _ as NSNull:
+                return sqlite3_bind_null(_stmt,CInt(index))
+            case _ as DataBaseNull:
+                return sqlite3_bind_null(_stmt,CInt(index))
             case let value as String:
                 let string:NSString = value
                 return sqlite3_bind_text(_stmt,CInt(index),string.UTF8String,-1,nil)
@@ -689,6 +693,9 @@ public class DBResultSet<T:DBTableType>: DataBaseResultSetBase<T> {
     
 }
 
+public struct DataBaseNull: CustomStringConvertible {
+    public var description:String { return "Null" }
+}
 
 public protocol DataBaseColumnProtocol : Enumerable {
     var type: DataBaseColumnType { get }
