@@ -31,9 +31,29 @@ public struct JSON {
     }
     
     // MARK: - JSONValue 可以赋值字典、数组、数值、字符串、布尔等
-    public class Value : DictionaryLiteralConvertible, ArrayLiteralConvertible, IntegerLiteralConvertible, BooleanLiteralConvertible, StringLiteralConvertible {
+    public class Value : DictionaryLiteralConvertible, ArrayLiteralConvertible, IntegerLiteralConvertible,FloatLiteralConvertible, BooleanLiteralConvertible, StringLiteralConvertible, GeneratorType {
         
+        public typealias Element = Value
+        public func next() -> Value? {
+            defer { index += 1 }
+            switch value {
+            case .JSONObject(let dict):
+                if index >= dict.count {
+                    index = -1
+                    return nil
+                }
+                return dict[ObjectIndex(rawValue: index)].1
+            case .JSONArray(let array):
+                if index >= array.count {
+                    index = -1
+                    return nil
+                }
+                return array[index]
+            default: return nil
+            }
+        }
         
+        private var index:Int = 0
         private var value:ValueType
         
         // MARK: JSONValue 可以赋值异常
@@ -117,6 +137,12 @@ public struct JSON {
         public required init(integerLiteral value: Int) {
             self.value = .JSONNumber(NSNumber(integer: value))
         }
+        public typealias FloatLiteralType = Double
+        /// Create an instance initialized to `value`.
+        public required init(floatLiteral value: Double) {
+            self.value = .JSONNumber(NSNumber(double: value))
+        }
+
         
         public required init(dictionaryLiteral elements: (String, Value)...) {
             let length = elements.count
@@ -517,6 +543,7 @@ public struct JSON {
             _keys.reserveCapacity(_capacity)
             _values = []
             _values.reserveCapacity(_capacity)
+            //UnsafeMutableBufferPointer<Int>(start: UnsafeMutablePointer<Int>(nil), count: 3)
             _pointer = UnsafeMutablePointer<Int>.alloc(_capacity)
             for i:Int in 0 ..< _capacity {
                 let element = elements[i]
@@ -659,7 +686,7 @@ extension JSON.Value : CustomStringConvertible, CustomDebugStringConvertible {
         case let .JSONArray(array)  :
             let values = array.joined(separator: ", ")
             return "[\(values)]"
-        case let .JSONNumber(num) : return "\(num.floatValue)"
+        case let .JSONNumber(num) : return num.stringValue
         case let .JSONString(str) :
             let text = str.dataUsingEncoding(NSNonLossyASCIIStringEncoding)?.toUTF8String() ?? ""
             return "\"\(text)\""

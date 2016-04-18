@@ -10,16 +10,16 @@ extension String {
     
     
 //    // create a static method to get a swift class for a string name
-//    public class func swiftClassFromString(className: String) -> AnyClass! {
-//        // get the project name
-//        if  var appName: String = NSBundle.mainBundle().objectForInfoDictionaryKey("CFBundleName") as? String {
-//            // generate the full name of your class (take a look into your "YourProject-swift.h" file)
-//            let classStringName = "_TtC\(appName.utf16count)\(appName)\(className.length)\(className)"
-//            // return the class!
-//            return NSClassFromString(classStringName)
-//        }
-//        return nil
-//    }
+    public static func swiftClassFromString(className: String) -> AnyClass! {
+        // get the project name
+        if  let appName: String = NSBundle.mainBundle().objectForInfoDictionaryKey("CFBundleName") as? String {
+            // generate the full name of your class (take a look into your "YourProject-swift.h" file)
+            let classStringName = "_TtC\(appName.utf16.count)\(appName)\(className.length)\(className)"
+            // return the class!
+            return NSClassFromString(classStringName)
+        }
+        return nil
+    }
     // MARK: - 取类型名
     public static func typeNameFromClass(aClass:AnyClass) -> String {
         let name = NSStringFromClass(aClass)
@@ -80,17 +80,12 @@ extension String {
     
     public subscript(subRange:Range<Int>) -> String {
         return self[self.startIndex.advancedBy(subRange.startIndex)..<self.startIndex.advancedBy(subRange.endIndex)]
-        //return self[advance(self.startIndex, subRange.startIndex)..<advance(self.startIndex, subRange.endIndex)]
     }
     
     // MARK: - 字符串修改 RangeReplaceableCollectionType
     public mutating func insert(newElement: Character, atIndex i: Int) {
         insert(newElement, atIndex: startIndex.advancedBy(i)) //advance(self.startIndex,i))
     }
-    
-//    public mutating func splice<S : CollectionType where S.Generator.Element == Character>(newElements: S, atIndex i:Int) {
-//        splice(newElements, atIndex: startIndex.advancedBy(i)) //advance(self.startIndex,i))
-//    }
     
     public mutating func replaceRange(subRange: Range<Int>, with newValues: String) {
         let start = startIndex.advancedBy(subRange.startIndex) //advance(self.startIndex, range.startIndex)
@@ -198,7 +193,7 @@ extension String {
     }
     
     public func matchRegular(regular:NSRegularExpression) -> Bool {
-        let length = characters.count
+        let length = startIndex.distanceTo(endIndex) //characters.count
         let range = regular.rangeOfFirstMatchInString(self, options: NSMatchingOptions(rawValue: 0), range: NSMakeRange(0, length))
         return range.location == 0 && range.length == length
     }
