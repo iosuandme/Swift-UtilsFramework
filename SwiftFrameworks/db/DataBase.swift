@@ -215,7 +215,7 @@ extension DBHandle {
             columnNames.appendContentsOf(rcolumns.joined(separator: ", ") { "\(rtable.rawValue).\($0.rawValue)" } ?? "")
         }
         columnNames = columnNames.isEmpty ? "*" : columnNames
-        var sql = "SELECT \(columnNames) FROM \(ltable.rawValue) LEFT JOIN \(rtable.rawValue) ON \(lc.rawValue)=\(rc.rawValue)"
+        var sql = "SELECT \(columnNames) FROM \(ltable.rawValue) lt LEFT JOIN \(rtable.rawValue) rt ON lt.\(lc.rawValue)=rt.\(rc.rawValue)"
         if let condition = WHERE where !condition.isEmpty {
             sql += " WHERE \(condition)"
         }
