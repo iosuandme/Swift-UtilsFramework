@@ -144,8 +144,10 @@ extension DBHandle {
     
     public func query<T:DBTableType>(_:T.Type, sql:String) throws -> DBResultSet<T> {
         let rowSet = try query(sql)
-        defer { rowSet._stmt = nil }
-        return DBResultSet(rowSet._stmt, T.self)
+        let result = DBResultSet<T>(rowSet._stmt)
+        result._needRelease = true
+        rowSet._stmt = nil
+        return result
     }
 }
 
@@ -421,6 +423,7 @@ public protocol DataBaseRowSetType {
 
 public class DBRowSet {
     private var _stmt:COpaquePointer = nil
+    private var _needRelease:Bool = true
     init (_ stmt:COpaquePointer) {
         _stmt = stmt
         let length = sqlite3_column_count(_stmt);
@@ -434,7 +437,7 @@ public class DBRowSet {
         self.columns = columns
     }
     deinit {
-        if _stmt != nil {
+        if _needRelease && _stmt != nil {
             sqlite3_finalize(_stmt)
         }
     }
@@ -618,12 +621,13 @@ public class DataBaseResultSetBase<T:DBTableType>: DBRowSet {
 
 public class DBResultSet<T:DBTableType>: DataBaseResultSetBase<T> {
     
-    init(_ stmt:COpaquePointer, _:T.Type) {
+    override init(_ stmt:COpaquePointer) {
         super.init(stmt)
     }
     
-    init(_ rs: DBRowSet, _:T.Type) {
+    init<U:DBTableType>(_ rs: DBResultSet<U>) {
         super.init(rs._stmt)
+        _needRelease = false
     }
     
     func getColumnIndex(column: T.Column) -> Int {
