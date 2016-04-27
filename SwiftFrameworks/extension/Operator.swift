@@ -51,6 +51,12 @@ func enumerateEnum<T: Hashable>(_: T.Type) -> AnyGenerator<T> {
 }
 
 
+// MAKR: - 日志
+public func ffLog(items: Any..., function: String = #function, path: String = #file, line:Int = #line) {
+    let fileName = path.componentsSeparatedByString("/").last ?? ""
+    print(items.map({ "\($0)" }).joinWithSeparator(", "), "\nLog at line(\(line)) in \(fileName) by function \(function)")
+}
+
 // MARK: - * 指针
 /// Replace `i` with its `successor()` and return the original value of `i`.
 @warn_unused_result
