@@ -54,7 +54,7 @@ func enumerateEnum<T: Hashable>(_: T.Type) -> AnyGenerator<T> {
 // MAKR: - 日志
 public func ffLog(items: Any..., function: String = #function, path: String = #file, line:Int = #line) {
     let fileName = path.componentsSeparatedByString("/").last ?? ""
-    print(items.map({ "\($0)" }).joinWithSeparator(", "), "\nLog at line(\(line)) in \(fileName) by function \(function)")
+    print(items.map({ "\($0)" }).joinWithSeparator(", "), "\n\t\tLog at line(\(line)) in \(fileName) by function \(function)")
 }
 
 // MARK: - * 指针
