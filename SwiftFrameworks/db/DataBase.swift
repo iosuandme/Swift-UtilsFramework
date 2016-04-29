@@ -132,22 +132,18 @@ extension DBHandle {
         if flag != SQLITE_OK { throw DBError(rawValue: flag)! }
     }
     
-    public func query(sql:String) throws -> DBRowSet {
+    private func query(sql:String) throws -> COpaquePointer {
         var stmt:COpaquePointer = nil
         _lastSQL = sql
         if SQLITE_OK != sqlite3_prepare_v2(_handle, sql, -1, &stmt, nil) {
             sqlite3_finalize(stmt)
             throw lastError
         }
-        return DBRowSet(stmt)
+        return stmt //DBRowSet(stmt)
     }
     
     public func query<T:DBTableType>(_:T.Type, sql:String) throws -> DBResultSet<T> {
-        let rowSet = try query(sql)
-        let result = DBResultSet<T>(rowSet._stmt)
-        result._needRelease = true
-        rowSet._stmt = nil
-        return result
+        return DBResultSet<T>(try query(sql))
     }
 }
 
@@ -207,7 +203,6 @@ extension DBHandle {
             sql.appendContentsOf(" WHERE \(condition)")
         }
         let rs = try query(T.self,sql: sql)
-        rs.next
         return rs.firstValue()
     }
     
@@ -296,7 +291,7 @@ extension DBHandle {
 // MARK: - insert
 extension DBHandle {
     
-    public func exec<T:DBTableType>(_:T.Type, INSERT OR:String?, INTO table:DB.Table, _ columns:[T.Column] = []) throws  -> DBBindSet {
+    public func exec<T:DBTableType>(_:T.Type, INSERT OR:String?, INTO table:DB.Table, _ columns:[T.Column] = []) throws  -> DBBindSet<T> {
         let orString = OR?.trim().joinIn(" ", "") ?? ""
         let columnNames = columns.count > 0 ? columns.joined(separator: ", ",includeElement: {"\($0.rawValue)"}).joinIn("(", ")") : ""
         var tableColumnsCount = 0
@@ -306,9 +301,8 @@ extension DBHandle {
         let length = columns.count > 0 ? columns.count : tableColumnsCount
         let values = [String](count: length, repeatedValue: "?").joined(separator: ", ")
         
-        let rowSet = try query("INSERT\(orString) INTO \(table.rawValue)\(columnNames) VALUES(\(values))")
-        defer { rowSet._stmt = nil }
-        return DBBindSet(rowSet._stmt)
+        let stmt = try query("INSERT\(orString) INTO \(table.rawValue)\(columnNames) VALUES(\(values))")
+        return DBBindSet<T>(stmt)
     }
     
     private func exec<T:DBTableType>(_:T.Type, INSERT OR:String?, INTO table:DB.Table, _ columns:[T.Column] = [], VALUES:[Any]) throws {
@@ -411,61 +405,235 @@ extension DBHandle {
     }
 }
 
-// MARK: - protocols 接口
-public protocol DataBaseRowSetType {
-    var step:CInt { get }
-    var next:Bool { get }
-    var row:Int { get }
-    func reset()
-    func close()
-}
-//结果集
-
-public class DBRowSet {
+// MARK: - result set 结果集
+public class DBResultSet<T:DBTableType>: GeneratorType, SequenceType {
+    public typealias Element = DBRowSet<T>
+    
     private var _stmt:COpaquePointer = nil
-    private var _needRelease:Bool = true
-    init (_ stmt:COpaquePointer) {
+    private init (_ stmt:COpaquePointer) {
         _stmt = stmt
         let length = sqlite3_column_count(_stmt);
-        columnCount = Int(length)
         var columns:[String] = []
         for i:CInt in 0..<length {
             let name:UnsafePointer<CChar> = sqlite3_column_name(_stmt,i)
             columns.append(String.fromCString(name)!.lowercaseString)
         }
         //print(columns)
-        self.columns = columns
+        _columns = columns
     }
     deinit {
-        if _needRelease && _stmt != nil {
+        if _stmt != nil {
             sqlite3_finalize(_stmt)
         }
     }
-    private let columns:[String]
-    let columnCount:Int
     
-}
-
-extension DBRowSet : DataBaseRowSetType {
-    public var step:CInt {
-        return sqlite3_step(_stmt)
-    }
-    public var next:Bool {
-        return step == SQLITE_ROW
-    }
     public var row:Int {
         return Int(sqlite3_data_count(_stmt))
     }
+
+    public var step:CInt {
+        return sqlite3_step(_stmt)
+    }
+    
     public func reset() {
         sqlite3_reset(_stmt)
     }
+    
     public func close() {
-        sqlite3_finalize(_stmt)
-        _stmt = nil
+        if _stmt != nil {
+            sqlite3_finalize(_stmt)
+            _stmt = nil
+        }
     }
+    
+    public func next() -> DBRowSet<T>? {
+        return step != SQLITE_ROW ? nil : DBRowSet<T>(_stmt, _columns)
+    }
+    
+    public func firstValue() -> Int {
+        if step != SQLITE_ROW {
+            return Int(sqlite3_column_int(_stmt, 0))
+        }
+        return 0
+    }
+    
+    private let _columns:[String]
+    var columnCount:Int { return _columns.count }
+    var isClosed:Bool { return _stmt == nil }
 }
 
-public class DBBindSet: DBRowSet {
+public class DBRowSetBase {
+    private var _stmt:COpaquePointer = nil
+    private let _columns:[String]
+
+    private init (_ stmt:COpaquePointer,_ columns:[String]) {
+        _stmt = stmt
+        _columns = columns
+    }
+    
+    public func getDictionary() -> [String:Any] {
+        var dict:[String:Any] = [:]
+        for i in 0..<_columns.count {
+            let index = CInt(i)
+            let type = sqlite3_column_type(_stmt, index);
+            //let table:UnsafePointer<Int8> = sqlite3_column_table_name(_stmt, index)
+            //let tableName = String.fromCString(UnsafePointer<CChar>(table))
+            //println("rs:\(tableName)")
+            let key:String = _columns[i]
+            var value:Any? = nil
+            switch type {
+            case SQLITE_INTEGER:
+                value = Int64(sqlite3_column_int64(_stmt, index))
+            case SQLITE_FLOAT:
+                value = Double(sqlite3_column_double(_stmt, index))
+            case SQLITE_TEXT:
+                let text:UnsafePointer<UInt8> = sqlite3_column_text(_stmt, index)
+                value = String.fromCString(UnsafePointer<CChar>(text))
+            case SQLITE_BLOB:
+                let data:UnsafePointer<Void> = sqlite3_column_blob(_stmt, index)
+                let size:CInt = sqlite3_column_bytes(_stmt, index)
+                value = NSData(bytes:data, length: Int(size))
+            case SQLITE_NULL:
+            fallthrough     //下降关键字 执行下一 CASE
+            default :
+                break           //什么都不执行
+            }
+            dict[key] = value
+//            //如果出现重名则
+//            if i != columnNames.indexOfObject(key) {
+//                //取变量类型
+//                //let tableName = String.fromCString(sqlite3_column_table_name(stmt, index))
+//                //dict["\(tableName).\(key)"] = value
+//                dict["\(key).\(i)"] = value
+//            } else {
+//                dict[key] = value
+//            }
+        }
+        
+        return dict
+    }
+    public func getInt64(columnIndex:Int) -> Int64 {
+        return sqlite3_column_int64(_stmt, CInt(columnIndex))
+    }
+    public func getUInt64(columnIndex:Int) -> UInt64 {
+        return UInt64(bitPattern: getInt64(columnIndex))
+    }
+    public func getInt(columnIndex:Int) -> Int {
+        return Int(truncatingBitPattern: getInt64(columnIndex))
+    }
+    public func getUInt(columnIndex:Int) -> UInt {
+        return UInt(truncatingBitPattern: getInt64(columnIndex))
+    }
+    public func getInt32(columnIndex:Int) -> Int32 {
+        return Int32(truncatingBitPattern: getInt64(columnIndex))
+    }
+    public func getUInt32(columnIndex:Int) -> UInt32 {
+        return UInt32(truncatingBitPattern: getInt64(columnIndex))
+    }
+    public func getBool(columnIndex:Int) -> Bool {
+        return getInt64(columnIndex) != 0
+    }
+    public func getFloat(columnIndex:Int) -> Float {
+        return Float(sqlite3_column_double(_stmt, CInt(columnIndex)))
+    }
+    public func getDouble(columnIndex:Int) -> Double {
+        return sqlite3_column_double(_stmt, CInt(columnIndex))
+    }
+    public func getString(columnIndex:Int) -> String? {
+        let result = sqlite3_column_text(_stmt, CInt(columnIndex))
+        return String.fromCString(UnsafePointer<CChar>(result))
+    }
+
+    func getColumnIndex(columnName: String) -> Int {
+        return _columns.indexOf({ $0 == columnName.lowercaseString }) ?? NSNotFound
+    }
+    
+    var columnCount:Int { return _columns.count }
+}
+
+public class DBRowSet<T:DBTableType>: DBRowSetBase {
+    private override init(_ stmt: COpaquePointer,_ columns:[String]) {
+        super.init(stmt, columns)
+    }
+    
+    public init <U:DBTableType>(_ rs:DBRowSet<U>) {
+        super.init(rs._stmt, rs._columns)
+    }
+    
+    public func getColumnIndex(column: T.Column) -> Int {
+        return _columns.indexOf({ $0 == "\(column.rawValue)".lowercaseString }) ?? NSNotFound
+    }
+    
+    
+    public func getUInt(column: T.Column) -> UInt {
+        return UInt(truncatingBitPattern: getInt64(column))
+    }
+    public func getInt(column: T.Column) -> Int {
+        return Int(truncatingBitPattern: getInt64(column))
+    }
+    public func getInt64(column: T.Column) -> Int64 {
+        guard let index = _columns.indexOf({ $0 == "\(column.rawValue)".lowercaseString }) else {
+            return 0
+        }
+        return sqlite3_column_int64(_stmt, CInt(index))
+    }
+    public func getDouble(column: T.Column) -> Double {
+        guard let index = _columns.indexOf({ $0 == "\(column.rawValue)".lowercaseString }) else {
+            return 0
+        }
+        return sqlite3_column_double(_stmt, CInt(index))
+    }
+    public func getFloat(column: T.Column) -> Float {
+        return Float(getDouble(column))
+    }
+    public func getString(column: T.Column) -> String! {
+        guard let index = _columns.indexOf({ $0 == "\(column.rawValue)".lowercaseString }) else {
+            return nil
+        }
+        let result = sqlite3_column_text(_stmt, CInt(index))
+        return String.fromCString(UnsafePointer<CChar>(result))
+    }
+    public func getData(column: T.Column) -> NSData! {
+        guard let index = _columns.indexOf({ $0 == "\(column.rawValue)".lowercaseString }) else {
+            return nil
+        }
+        let data:UnsafePointer<Void> = sqlite3_column_blob(_stmt, CInt(index))
+        let size:CInt = sqlite3_column_bytes(_stmt, CInt(index))
+        return NSData(bytes:data, length: Int(size))
+    }
+    public func getDate(column: T.Column) -> NSDate! {
+        guard let index = _columns.indexOf({ $0 == "\(column.rawValue)".lowercaseString }) else {
+            return nil
+        }
+        let columnType = sqlite3_column_type(_stmt, CInt(index))
+        
+        switch columnType {
+        case SQLITE_INTEGER:
+            fallthrough
+        case SQLITE_FLOAT:
+            let time = sqlite3_column_double(_stmt, CInt(index))
+            return NSDate(timeIntervalSince1970: time)
+        case SQLITE_TEXT:
+            let result = UnsafePointer<CChar>(sqlite3_column_text(_stmt, CInt(index)))
+            let date = String.fromCString(result)
+            let formater = NSDateFormatter()
+            formater.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            //formater.calendar = NSCalendar.currentCalendar()
+            return formater.dateFromString(date!)
+        default:
+            return nil
+        }
+        
+    }
+
+}
+
+public class DBBindSet<T:DBTableType>: DBResultSet<T> {
+    
+    override init(_ stmt: COpaquePointer) {
+        super.init(stmt)
+    }
+    
     var bindCount:CInt {
         return sqlite3_bind_parameter_count(_stmt)
     }
@@ -532,175 +700,11 @@ public class DBBindSet: DBRowSet {
     }
 }
 
-public class DataBaseResultSetBase<T:DBTableType>: DBRowSet {
-    
-    override init(_ stmt: COpaquePointer) {
-        super.init(stmt)
-    }
-    
-    public func firstValue() -> Int {
-        if next {
-            return Int(sqlite3_column_int(_stmt, 0))
-        }
-        return 0
-    }
-    
-    public func getDictionary() -> [String:Any] {
-        var dict:[String:Any] = [:]
-        for i in 0..<columns.count {
-            let index = CInt(i)
-            let type = sqlite3_column_type(_stmt, index);
-            //let table:UnsafePointer<Int8> = sqlite3_column_table_name(_stmt, index)
-            //let tableName = String.fromCString(UnsafePointer<CChar>(table))
-            //println("rs:\(tableName)")
-            let key:String = columns[i]
-            var value:Any? = nil
-            switch type {
-            case SQLITE_INTEGER:
-                value = Int64(sqlite3_column_int64(_stmt, index))
-            case SQLITE_FLOAT:
-                value = Double(sqlite3_column_double(_stmt, index))
-            case SQLITE_TEXT:
-                let text:UnsafePointer<UInt8> = sqlite3_column_text(_stmt, index)
-                value = String.fromCString(UnsafePointer<CChar>(text))
-            case SQLITE_BLOB:
-                let data:UnsafePointer<Void> = sqlite3_column_blob(_stmt, index)
-                let size:CInt = sqlite3_column_bytes(_stmt, index)
-                value = NSData(bytes:data, length: Int(size))
-            case SQLITE_NULL:
-            fallthrough     //下降关键字 执行下一 CASE
-            default :
-                break           //什么都不执行
-            }
-            dict[key] = value
-//            //如果出现重名则
-//            if i != columnNames.indexOfObject(key) {
-//                //取变量类型
-//                //let tableName = String.fromCString(sqlite3_column_table_name(stmt, index))
-//                //dict["\(tableName).\(key)"] = value
-//                dict["\(key).\(i)"] = value
-//            } else {
-//                dict[key] = value
-//            }
-        }
-        
-        return dict
-    }
-    public func getInt64(columnIndex:Int) -> Int64 {
-        return columnIndex < columnCount ? sqlite3_column_int64(_stmt, CInt(columnIndex)) : 0
-    }
-    public func getUInt64(columnIndex:Int) -> UInt64 {
-        return UInt64(bitPattern: getInt64(columnIndex))
-    }
-    public func getInt(columnIndex:Int) -> Int {
-        return Int(truncatingBitPattern: getInt64(columnIndex))
-    }
-    public func getUInt(columnIndex:Int) -> UInt {
-        return UInt(truncatingBitPattern: getInt64(columnIndex))
-    }
-    public func getInt32(columnIndex:Int) -> Int32 {
-        return Int32(truncatingBitPattern: getInt64(columnIndex))
-    }
-    public func getUInt32(columnIndex:Int) -> UInt32 {
-        return UInt32(truncatingBitPattern: getInt64(columnIndex))
-    }
-    public func getBool(columnIndex:Int) -> Bool {
-        return getInt64(columnIndex) > 0
-    }
-    public func getFloat(columnIndex:Int) -> Float {
-        return Float(sqlite3_column_double(_stmt, CInt(columnIndex)))
-    }
-    public func getDouble(columnIndex:Int) -> Double {
-        return sqlite3_column_double(_stmt, CInt(columnIndex))
-    }
-    public func getString(columnIndex:Int) -> String! {
-        let result = sqlite3_column_text(_stmt, CInt(columnIndex))
-        return String.fromCString(UnsafePointer<CChar>(result))
-    }
-}
-
-public class DBResultSet<T:DBTableType>: DataBaseResultSetBase<T> {
-    
-    override init(_ stmt:COpaquePointer) {
-        super.init(stmt)
-    }
-    
-    init<U:DBTableType>(_ rs: DBResultSet<U>) {
-        super.init(rs._stmt)
-        _needRelease = false
-    }
-    
-    func getColumnIndex(column: T.Column) -> Int {
-        return columns.indexOf({ $0 == "\(column.rawValue)".lowercaseString }) ?? NSNotFound
-    }
-    
-    public func getUInt(column: T.Column) -> UInt {
-        return UInt(truncatingBitPattern: getInt64(column))
-    }
-    public func getInt(column: T.Column) -> Int {
-        return Int(truncatingBitPattern: getInt64(column))
-    }
-    public func getInt64(column: T.Column) -> Int64 {
-        guard let index = columns.indexOf({ $0 == "\(column.rawValue)".lowercaseString }) else {
-            return 0
-        }
-        return sqlite3_column_int64(_stmt, CInt(index))
-    }
-    public func getDouble(column: T.Column) -> Double {
-        guard let index = columns.indexOf({ $0 == "\(column.rawValue)".lowercaseString }) else {
-            return 0
-        }
-        return sqlite3_column_double(_stmt, CInt(index))
-    }
-    public func getFloat(column: T.Column) -> Float {
-        return Float(getDouble(column))
-    }
-    public func getString(column: T.Column) -> String! {
-        guard let index = columns.indexOf({ $0 == "\(column.rawValue)".lowercaseString }) else {
-            return nil
-        }
-        let result = sqlite3_column_text(_stmt, CInt(index))
-        return String.fromCString(UnsafePointer<CChar>(result))
-    }
-    public func getData(column: T.Column) -> NSData! {
-        guard let index = columns.indexOf({ $0 == "\(column.rawValue)".lowercaseString }) else {
-            return nil
-        }
-        let data:UnsafePointer<Void> = sqlite3_column_blob(_stmt, CInt(index))
-        let size:CInt = sqlite3_column_bytes(_stmt, CInt(index))
-        return NSData(bytes:data, length: Int(size))
-    }
-    public func getDate(column: T.Column) -> NSDate! {
-        guard let index = columns.indexOf({ $0 == "\(column.rawValue)".lowercaseString }) else {
-            return nil
-        }
-        let columnType = sqlite3_column_type(_stmt, CInt(index))
-        
-        switch columnType {
-        case SQLITE_INTEGER:
-            fallthrough
-        case SQLITE_FLOAT:
-            let time = sqlite3_column_double(_stmt, CInt(index))
-            return NSDate(timeIntervalSince1970: time)
-        case SQLITE_TEXT:
-            let result = UnsafePointer<CChar>(sqlite3_column_text(_stmt, CInt(index)))
-            let date = String.fromCString(result)
-            let formater = NSDateFormatter()
-            formater.dateFormat = "yyyy-MM-dd HH:mm:ss"
-            //formater.calendar = NSCalendar.currentCalendar()
-            return formater.dateFromString(date!)
-        default:
-            return nil
-        }
-        
-    }
-    
-}
-
 public struct DataBaseNull: CustomStringConvertible {
     public var description:String { return "Null" }
 }
 
+// MARK: - protocols 接口
 public protocol DataBaseColumnProtocol : Enumerable {
     var type: DataBaseColumnType { get }
     var option: DataBaseColumnOptions { get }
