@@ -26,6 +26,11 @@ extension String {
         let demangleName = _stdlib_demangleName(name)
         return demangleName.componentsSeparatedByString(".").last!
     }
+    
+//    public init(_ items: Any...) {
+//        let string = items.map({ "\($0)" }).joinWithSeparator(", ")
+//        self.init(string)
+//    }
 
 //    static func typeNameFromAny(thing:Any) -> String {
 //        let name = _stdlib_getTypeName(thing)

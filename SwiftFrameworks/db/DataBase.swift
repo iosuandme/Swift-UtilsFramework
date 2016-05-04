@@ -451,7 +451,7 @@ public class DBResultSet<T:DBTableType>: GeneratorType, SequenceType {
     }
     
     public func firstValue() -> Int {
-        if step != SQLITE_ROW {
+        if step == SQLITE_ROW {
             return Int(sqlite3_column_int(_stmt, 0))
         }
         return 0

@@ -12,8 +12,12 @@ import Foundation
 protocol TreeType {
     
     // 必须实现
+    
+    /// mast use weak
+    var parent: Self? { get set }
+    
     var childs:[Self] { get set }
-    var isRoot:Bool { get }
+    var isRoot: Bool  { get }
     
     // 已实现
     func enumerate(@noescape body: (Self) -> Void)
@@ -35,8 +39,11 @@ extension TreeType {
     
     mutating func setChilds(items:[Self], @noescape isChild: (parent:Self, child:Self) throws -> Bool) rethrows {
         childs.removeAll()
-        for item in items {
-            if try isChild(parent: self, child: item) { childs.append(item) }
+        for var item in items {
+            if try isChild(parent: self, child: item) {
+                childs.append(item)
+                item.parent = self
+            }
         }
     }
     
