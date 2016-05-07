@@ -319,6 +319,13 @@ public struct JSON {
             return false
         }
         
+        var isError:Bool {
+            if case .JSONError = value {
+                return true
+            }
+            return false
+        }
+        
     }
     
     public class Object : CollectionType, MutableIndexable, SequenceType, DictionaryLiteralConvertible {
@@ -697,9 +704,23 @@ extension JSON.Value : CustomStringConvertible, CustomDebugStringConvertible {
     }
     /// A textual representation of `self`, suitable for debugging.
     public var debugDescription: String {
-        return "JSON.Value<\(description)>)"
+        return formatJSON(0)
     }
     
+    private func formatJSON(retract:Int) -> String {
+        switch (value) {
+        case let .JSONObject(dict)  :
+            return dict.formatJSON(retract)
+        case let .JSONArray(array)  :
+            let values = array.joined(separator: ", ") { $0.debugDescription }
+            return "[\(values)]"
+        case let .JSONNumber(num) : return num.stringValue
+        case let .JSONString(str) :
+            return "\"\(str)\""
+        case let .JSONError(error): return "\"(--->\(error)<---)\""
+        case .JSONNull            : return "null"
+        }
+    }
     
 }
 
@@ -716,7 +737,19 @@ extension JSON.Object : CustomStringConvertible, CustomDebugStringConvertible {
     }
     /// A textual representation of `self`, suitable for debugging.
     public var debugDescription: String {
-        return "JSON.Object<\(Key.self), \(Value.self)> \(description) count(\(_count))"
+        return formatJSON(0)
+    }
+    
+    private func formatJSON(retract:Int) -> String {
+        var result:String = ""
+        var retractString = String(count: retract + 1, repeatedValue: "\t" as Character)
+        for i:Int in 0 ..< _count {
+            if !result.isEmpty { result += ", \n\(retractString)" }
+            result += "\"\(_keys[i])\": \(_values[i].formatJSON(retract + 1))"
+        }
+        result = "{\n\(retractString)\(result)"
+        retractString.removeAtIndex(retractString.startIndex)
+        return "\(result)\n\(retractString)}"
     }
 }
 
