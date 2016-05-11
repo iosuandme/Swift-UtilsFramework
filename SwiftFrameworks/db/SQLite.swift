@@ -717,7 +717,7 @@ extension SQLite.Handle : SQLiteInsert {
                 } else {
                     bindSet.reset()
                     if lastInsertID == sqlite3_last_insert_rowid(_handle) {
-                        lastInsertID++
+                        lastInsertID += 1
                     }
                 }
             }

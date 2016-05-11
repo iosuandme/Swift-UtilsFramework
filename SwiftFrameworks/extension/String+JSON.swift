@@ -434,7 +434,8 @@ public struct JSON {
             _pointer.advancedBy(_offset + _count).initialize(key.hashValue)
             _keys.append(key)
             _values.append(value)
-            return ObjectIndex(rawValue:_count++)
+            defer { _count += 1 }
+            return ObjectIndex(rawValue:_count)
         }
         /// Update the value stored in the dictionary for the given key, or, if they
         /// key does not exist, add a new key-value pair to the dictionary.
@@ -485,16 +486,19 @@ public struct JSON {
             if _count == 0 {
                 fatalError("can't remove last because count is zero")
             }
-            let lastPointer = _pointer.advancedBy(--_count)
+            _count -= 1
+            let lastPointer = _pointer.advancedBy(_count)
             lastPointer.destroy()
             return (_keys.removeAtIndex(_count), _values.removeAtIndex(_count))
         }
         
         func removeFirst() -> (String, Value) {
-            if _count-- == 0 {
+            if _count == 0 {
                 fatalError("can't remove first because count is zero")
             }
-            _pointer.advancedBy(_offset++).destroy()
+            _count -= 1
+            _pointer.advancedBy(_offset).destroy()
+            _offset += 1
             return (_keys.removeAtIndex(0), _values.removeAtIndex(0))
         }
         
@@ -633,7 +637,8 @@ public struct JSON {
         @warn_unused_result
         public mutating func next() -> (String, Value)? {
             if _position < _dictionary.count {
-                return _dictionary[ObjectIndex(rawValue: _position++)]
+                defer { _position += 1 }
+                return _dictionary[ObjectIndex(rawValue: _position)]
             }
             return nil
         }
