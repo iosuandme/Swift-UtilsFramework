@@ -712,8 +712,11 @@ extension JSON.Value : CustomStringConvertible, CustomDebugStringConvertible {
         case let .JSONObject(dict)  :
             return dict.formatJSON(retract)
         case let .JSONArray(array)  :
-            let values = array.joined(separator: ", ") { $0.debugDescription }
-            return "[\(values)]"
+            var retractString = String(count: retract + 1, repeatedValue: "\t" as Character)
+            var result = array.joined(separator: ", ") { $0.formatJSON(retract + 1) }
+            result = "[\n\(retractString)\(result)"
+            retractString.removeAtIndex(retractString.startIndex)
+            return "\n\(retractString)\(result)\n\(retractString)]"
         case let .JSONNumber(num) : return num.stringValue
         case let .JSONString(str) :
             return "\"\(str)\""
@@ -749,7 +752,7 @@ extension JSON.Object : CustomStringConvertible, CustomDebugStringConvertible {
         }
         result = "{\n\(retractString)\(result)"
         retractString.removeAtIndex(retractString.startIndex)
-        return "\(result)\n\(retractString)}"
+        return "\n\(retractString)\(result)\n\(retractString)}"
     }
 }
 
