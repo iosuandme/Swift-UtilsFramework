@@ -31,7 +31,7 @@ public struct JSON {
     }
     
     // MARK: - JSONValue 可以赋值字典、数组、数值、字符串、布尔等
-    public class Value : DictionaryLiteralConvertible, ArrayLiteralConvertible, IntegerLiteralConvertible,FloatLiteralConvertible, BooleanLiteralConvertible, StringLiteralConvertible, GeneratorType {
+    public class Value : DictionaryLiteralConvertible, ArrayLiteralConvertible, IntegerLiteralConvertible,FloatLiteralConvertible, BooleanLiteralConvertible, StringLiteralConvertible, GeneratorType, SequenceType {
         
         public typealias Element = Value
         public func next() -> Value? {
