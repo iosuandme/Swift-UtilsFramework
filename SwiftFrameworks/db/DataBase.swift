@@ -286,6 +286,12 @@ extension DBHandle {
         }
         try exec(sql)
     }
+    
+    // 清空表
+    public func exec(TRUNCATE_TABLE table:DB.Table) throws {
+        try exec("DELETE FROM \(table.rawValue)")
+        try exec("UPDATE sqlite_sequence SET seq=0 WHERE name='\(table.rawValue)'")
+    }
 }
 
 // MARK: - insert
