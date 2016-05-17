@@ -301,7 +301,7 @@ extension DBHandle {
         let orString = OR?.trim().joinIn(" ", "") ?? ""
         let columnNames = columns.count > 0 ? columns.joined(separator: ", ",includeElement: {"\($0.rawValue)"}).joinIn("(", ")") : ""
         var tableColumnsCount = 0
-        for _ in enumerateEnum(T.Column.self) {
+        for column in enumerateEnum(T.Column.self) where !column.option.contains(.ConstraintPrimaryKey)  {
             tableColumnsCount += 1
         }
         let length = columns.count > 0 ? columns.count : tableColumnsCount
@@ -346,7 +346,7 @@ extension DBHandle {
         if columns.count > 0 {
             columnFields = columns
         } else {
-            for column in enumerateEnum(T.Column.self) {
+            for column in enumerateEnum(T.Column.self) where !column.option.contains(.ConstraintPrimaryKey) {
                 columnFields.append(column)
             }
         }
@@ -373,6 +373,7 @@ extension DBHandle {
             let dict = map(id: Int(truncatingBitPattern: lastInsertID), item: value)
             for i:Int in 0 ..< columnFields.count {
                 let key = columnFields[i]
+                print(key, dict[key])
                 flag = bindSet.bindValue(dict[key], index: i + 1)
                 if flag != SQLITE_OK && flag != SQLITE_ROW { break }
             }
@@ -396,6 +397,7 @@ extension DBHandle {
             commitTransaction()
         } else {
             rollbackTransaction()
+            print(lastSQL)
             throw DBError(rawValue: flag) ?? DBError.ERROR
         }
     }
