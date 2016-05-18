@@ -132,16 +132,16 @@ postfix public func ++(inout x: UInt16) -> UInt16 {
     return y
 }
 
-postfix public func ++(inout lhs: Float80) -> Float80 {
-    let rhs = lhs
-    lhs += 1
-    return rhs
-}
-
-prefix public func ++(inout rhs: Float80) -> Float80 {
-    rhs += 1
-    return rhs
-}
+//postfix public func ++(inout lhs: Float80) -> Float80 {
+//    let rhs = lhs
+//    lhs += 1
+//    return rhs
+//}
+//
+//prefix public func ++(inout rhs: Float80) -> Float80 {
+//    rhs += 1
+//    return rhs
+//}
 
 prefix public func ++(inout x: UInt16) -> UInt16 {
     x += 1
@@ -258,11 +258,11 @@ postfix public func --(inout lhs: Float) -> Float {
     lhs -= 1
     return rhs
 }
-
-prefix public func --(inout rhs: Float80) -> Float80 {
-    rhs -= 1
-    return rhs
-}
+//
+//prefix public func --(inout rhs: Float80) -> Float80 {
+//    rhs -= 1
+//    return rhs
+//}
 
 prefix public func --(inout rhs: Float) -> Float {
     rhs -= 1
@@ -280,11 +280,11 @@ prefix public func --(inout rhs: Int) -> Int {
     return rhs
 }
 
-postfix public func --(inout lhs: Float80) -> Float80 {
-    let rhs = lhs
-    lhs -= 1
-    return rhs
-}
+//postfix public func --(inout lhs: Float80) -> Float80 {
+//    let rhs = lhs
+//    lhs -= 1
+//    return rhs
+//}
 
 postfix public func --(inout lhs: UInt) -> UInt {
     let rhs = lhs

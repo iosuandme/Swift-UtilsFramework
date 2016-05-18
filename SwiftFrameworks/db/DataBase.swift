@@ -373,7 +373,7 @@ extension DBHandle {
             let dict = map(id: Int(truncatingBitPattern: lastInsertID), item: value)
             for i:Int in 0 ..< columnFields.count {
                 let key = columnFields[i]
-                print(key, dict[key])
+                //print(key, dict[key])
                 flag = bindSet.bindValue(dict[key], index: i + 1)
                 if flag != SQLITE_OK && flag != SQLITE_ROW { break }
             }
