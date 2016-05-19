@@ -355,15 +355,11 @@ extension DBHandle {
         var flag:CInt = SQLITE_ERROR
         for i:Int in 0 ..< columnFields.count {
             let columnOption = columnFields[i].option
-            let value:Int? = columnOption.contains(.PrimaryKey) ? nil : 1
+            let value:Int? = columnOption.contains(.PrimaryKey) || columnOption.contains(.NotNull) ? nil : 1
             bindSet.bindValue(value, index: i + 1)
         }
         flag = bindSet.step
-        if flag == SQLITE_OK || flag == SQLITE_DONE {
-            rollbackTransaction()
-        } else {
-            throw DBError(rawValue: flag) ?? DBError.CUSTOM
-        }
+        rollbackTransaction()
         bindSet.reset()
         var lastInsertID = sqlite3_last_insert_rowid(_handle)
         beginTransaction()

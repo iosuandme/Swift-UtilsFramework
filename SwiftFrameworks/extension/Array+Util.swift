@@ -29,6 +29,14 @@ extension CollectionType {
 //        return result
 //    }
     
+    public func set<T:Hashable>(@noescape includeElement:(Generator.Element) -> T) -> Set<T> {
+        var set = Set<T>()
+        for item:Self.Generator.Element in self {
+            set.insert(includeElement(item))
+        }
+        return set
+    }
+    
     public func joined(separator separator:String, includeElement:(Generator.Element) -> String = { "\($0)" }) -> String {
         var result:String = ""
         for item:Self.Generator.Element in self {
