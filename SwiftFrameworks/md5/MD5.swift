@@ -20,7 +20,7 @@ extension String {
         for i in 0 ..< digestLen {
             hash.appendFormat("%02x", result[i])
         }
-        result.destroy()
+        result.destroy(digestLen)
         
         return hash as String//String(format: hash as String)
     }
