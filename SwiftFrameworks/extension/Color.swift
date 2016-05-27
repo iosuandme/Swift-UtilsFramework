@@ -77,7 +77,6 @@ extension Color {
 #endif
 }
 
-
 #if os (iOS)
     extension UIColor {
         var valueColor:Color {
@@ -86,7 +85,12 @@ extension Color {
             var b:CGFloat = 0
             var a:CGFloat = 0
             getRed(&r, green: &g, blue: &b, alpha: &a)
-            return Color(rawValue: (UInt32(r * 0xFF) << 24) | (UInt32(r * 0xFF) << 16) | (UInt32(g * 0xFF) << 8) | UInt32(b * 0xFF))
+            var value:UInt32 = 0
+            value = value | UInt32(a * 0xFF) << 24
+            value = value | UInt32(r * 0xFF) << 16
+            value = value | UInt32(g * 0xFF) << 8
+            value = value | UInt32(b * 0xFF)
+            return Color(rawValue: value)
         }
     }
 #elseif os (OSX)
