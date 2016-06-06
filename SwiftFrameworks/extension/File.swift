@@ -44,8 +44,9 @@ public struct File : Equatable, CustomStringConvertible, CustomDebugStringConver
     }
     
     // MARK: 判断目录中存在指定 1-n个文件名
-    public func existsFileName(var names:[String]) -> Bool {
+    public func existsFileName(names:[String]) -> Bool {
         if names.count == 0 { return false }
+        var names = names
         let fileManager:NSFileManager = NSFileManager.defaultManager()
         do {
             let fileNames:[String] = try fileManager.contentsOfDirectoryAtPath(fullPath)
