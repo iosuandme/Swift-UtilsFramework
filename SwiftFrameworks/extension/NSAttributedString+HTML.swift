@@ -228,9 +228,17 @@ extension NSAttributedString {
                 case .LI :
                     break
                 case .SUB :
-                    attrString.addAttributes(["NSSuperScript":NSNumber(int: -1), NSFontAttributeName:Font.systemFontOfSize(size)], range: range)
+                    attrString.addAttributes([
+                        "NSSuperScript":NSNumber(int: -1),
+                        NSFontAttributeName:Font.systemFontOfSize(size),
+                        NSBaselineOffsetAttributeName:7
+                    ], range: range)
                 case .SUP :
-                    attrString.addAttributes(["NSSuperScript":NSNumber(int: 1), NSFontAttributeName:Font.systemFontOfSize(size)], range: range)
+                    attrString.addAttributes([
+                        "NSSuperScript":NSNumber(int: 1),
+                        NSFontAttributeName:Font.systemFontOfSize(size),
+                        NSBaselineOffsetAttributeName:-8
+                        ], range: range)
                 case let .IMG(src, alt) :
                     if let fileWrapper = imageFactory?(imageURL: src) {
                         let attachment = NSImageAttachment()//NSTextAttachment()
