@@ -55,6 +55,11 @@ extension String {
     return (self as NSString).boundingRectWithSize(size, options: [.UsesLineFragmentOrigin, .UsesFontLeading], attributes: [NSFontAttributeName:defaultFont, NSParagraphStyleAttributeName:paragraphStyle], context: nil).size
     
     }
+    
+    // MARK: - 快捷生成富文本
+    public func attributedStringBy(attributes: [String : AnyObject]?) -> NSAttributedString {
+        return NSAttributedString(string: self, attributes: attributes)
+    }
 
     #endif
     // MARK: - 取路径末尾文件名

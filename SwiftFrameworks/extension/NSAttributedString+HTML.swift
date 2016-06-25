@@ -176,8 +176,17 @@ extension NSAttributedString {
                 content += text
             }
             
-            attrString = NSMutableAttributedString(string: content, attributes: [NSFontAttributeName:Font.systemFontOfSize(size)])
-            let enterChar = NSAttributedString(string: "\n", attributes: [NSFontAttributeName: Font.systemFontOfSize(18)])
+            let font = Font.systemFontOfSize(size)
+            
+            let style = NSMutableParagraphStyle()
+            style.lineSpacing = 3
+            style.paragraphSpacing = 15
+            
+            attrString = NSMutableAttributedString(string: content, attributes: [
+                NSFontAttributeName:font,
+                NSParagraphStyleAttributeName:style
+            ])
+            let enterChar = NSAttributedString(string: "\n", attributes: [NSFontAttributeName: font])
             
             while elements.count > 0 {
                 let element = elements.removeAtIndex(0)
@@ -224,7 +233,7 @@ extension NSAttributedString {
                     attrString.addAttributes(["NSSuperScript":NSNumber(int: 1), NSFontAttributeName:Font.systemFontOfSize(size)], range: range)
                 case let .IMG(src, alt) :
                     if let fileWrapper = imageFactory?(imageURL: src) {
-                        let attachment = NSTextAttachment()
+                        let attachment = NSImageAttachment()//NSTextAttachment()
                         attachment.fileWrapper = fileWrapper
                         attrString.replaceCharactersInRange(range, withAttributedString: NSAttributedString(attachment: attachment))
                         NSAttributedStringHTML.HTMLElement.changeElementOffset(1, withLoacaton: range.location, inElements: &elements)
