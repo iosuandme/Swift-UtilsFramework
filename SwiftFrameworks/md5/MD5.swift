@@ -7,6 +7,7 @@
 //
 
 import Foundation
+//#import <CommonCrypto/CommonDigest.h>
 
 extension String {
     var MD5:String {
