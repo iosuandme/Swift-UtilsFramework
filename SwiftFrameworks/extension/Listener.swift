@@ -16,7 +16,9 @@ public class Listener<T> {
     
     public func addNotificationBy(target target:AnyObject, callback:(T)->Void) {
         notifications.append(Notification<T>(target, callback))
-        callback(onInitNotification())
+        if let item:T = onInitNotification?() {
+            callback(item)
+        }
     }
     
     public func dispatchChanged(item:T) {
@@ -31,8 +33,8 @@ public class Listener<T> {
         }
     }
     
-    private var onInitNotification:()->T
-    init(onInitNotification:()->T) {
+    private var onInitNotification:(()->T)?
+    init(onInitNotification:(()->T)? = nil) {
         self.onInitNotification = onInitNotification
     }
     
