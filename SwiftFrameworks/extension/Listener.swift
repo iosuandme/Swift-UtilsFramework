@@ -17,12 +17,16 @@ public class Listener<T> {
     public func addNotificationBy(target target:AnyObject, callback:(T)->Void) {
         notifications.append(Notification<T>(target, callback))
         if let item:T = onInitNotification?() {
-            callback(item)
+            NSOperationQueue.mainQueue().addOperationWithBlock {
+                callback(item)
+            }
         }
     }
     
     public func dispatchChanged(item:T) {
-        notifications.forEach { $0.callback(item) }
+        NSOperationQueue.mainQueue().addOperationWithBlock {
+            self.notifications.forEach { $0.callback(item) }
+        }
     }
     
     public func removeNotificationBy(target target:AnyObject) {
