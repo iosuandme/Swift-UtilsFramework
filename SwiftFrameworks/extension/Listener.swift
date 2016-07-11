@@ -25,7 +25,12 @@ public class Listener<T> {
     
     public func dispatchChanged(item:T) {
         NSOperationQueue.mainQueue().addOperationWithBlock {
-            self.notifications.forEach { $0.callback(item) }
+            for i in (0..<self.notifications.count).reverse() {
+                let notification = self.notifications[i]
+                if notification.target === nil {
+                    self.notifications.removeAtIndex(i)
+                } else { notification.callback(item) }
+            }
         }
     }
     
@@ -47,7 +52,7 @@ public class Listener<T> {
 
 private class Notification<T> {
     
-    private var target:AnyObject
+    private weak var target:AnyObject?
     
     private var callback:(T)->Void
     
