@@ -14,6 +14,8 @@ public class Listener<T> {
     
     private var notifications:[Notification<T>] = []
     
+    public var count:Int { return notifications.count }
+    
     public func addNotificationBy(target target:AnyObject, callback:(T)->Void) {
         notifications.append(Notification<T>(target, callback))
         if let item:T = onInitNotification?() {
