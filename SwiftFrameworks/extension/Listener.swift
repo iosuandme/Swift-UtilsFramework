@@ -26,6 +26,18 @@ public class Listener<T> {
             }
         }
     }
+    public func addNotificationBy(target target:NSObject, callback:Selector) {
+        notifications.append(Notification<T>(target, callback))
+        if let item:T = onInitNotification?() {
+            NSOperationQueue.mainQueue().addOperationWithBlock {
+                if let obj = item as? AnyObject {
+                    target.performSelector(callback, withObject: obj)
+                } else {
+                    target.performSelector(callback)
+                }
+            }
+        }
+    }
     
     public func dispatchChanged(item:T) {
         NSOperationQueue.mainQueue().addOperationWithBlock {
@@ -33,7 +45,16 @@ public class Listener<T> {
                 let notification = self.notifications[i]
                 if notification.target === nil {
                     self.notifications.removeAtIndex(i)
-                } else { notification.callback(item) }
+                } else if let selector = notification.selector {
+                    let target = notification.target as! NSObject
+                    if let obj = item as? AnyObject {
+                        target.performSelector(selector, withObject: obj)
+                    } else {
+                        target.performSelector(selector)
+                    }
+                } else {
+                    notification.callback(item)
+                }
             }
         }
     }
@@ -59,10 +80,17 @@ private class Notification<T> {
     private weak var target:AnyObject?
     
     private var callback:(T)->Void
+    private var selector:Selector?
     
     init(_ target:AnyObject, _ callback:(T)->Void) {
         self.target = target
         self.callback = callback
+    }
+    
+    init (_ target:NSObject, _ callback:Selector) {
+        self.target = target
+        self.selector = callback
+        self.callback = {_ in }
     }
     
 }
