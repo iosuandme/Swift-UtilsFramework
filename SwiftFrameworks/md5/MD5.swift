@@ -26,3 +26,18 @@ extension String {
         return hash as String//String(format: hash as String)
     }
 }
+
+extension NSData {
+    var MD5:String {
+        let len = CC_LONG(length)
+        let digestLen = Int(CC_MD5_DIGEST_LENGTH)
+        let result = UnsafeMutablePointer<CUnsignedChar>.alloc(digestLen)
+        CC_MD5(bytes, len, result)
+        let hash = NSMutableString()
+        for i in 0 ..< digestLen {
+            hash.appendFormat("%02x", result[i])
+        }
+        result.destroy(digestLen)
+        return hash as String
+    }
+}
