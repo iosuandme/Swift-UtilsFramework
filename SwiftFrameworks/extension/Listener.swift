@@ -17,7 +17,7 @@ public class Listener<T> {
     public var count:Int { return notifications.count }
     
     
-    /// 闭包内不要使用self
+    /// callback mast use `[unowned self]` or `[weak self]` before `(params) in {`
     public func addNotificationBy(target target:AnyObject, callback:(T)->Void) {
         notifications.append(Notification<T>(target, callback))
         if let item:T = onInitNotification?() {

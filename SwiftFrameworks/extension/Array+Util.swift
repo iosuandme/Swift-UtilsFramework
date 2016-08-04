@@ -17,6 +17,12 @@ import Foundation
 //        return result
 //    }
 //}
+extension Int {
+    func times(@noescape function: (Int) -> Void) {
+        for i in 0 ..< self { function(i) }
+    }
+}
+
 extension CollectionType {
     
     // 用指定分隔符 连接 数组元素 为 字符串
