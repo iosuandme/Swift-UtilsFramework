@@ -35,6 +35,25 @@ extension CollectionType {
 //        return result
 //    }
     
+    
+    /*  
+     *  遍历数组中的元素并加入下标索引 例如:
+     *  for (i, item) in array.indexItems {
+     *      print(i, item)
+     *  }
+     */
+    public var indexItems:AnyGenerator<(Int, Generator.Element)> {
+        var i = 0
+        var generator = generate()
+        return AnyGenerator {
+            if let next = generator.next() {
+                defer { i += 1 }
+                return (i, next)
+            }
+            return nil
+        }
+    }
+    
     public func set<T:Hashable>(@noescape includeElement:(Generator.Element) -> T) -> Set<T> {
         var set = Set<T>()
         for item:Self.Generator.Element in self {
@@ -62,35 +81,3 @@ extension CollectionType {
     
     
 }
-/*
-extension Array {
-    
-    // 过滤符合条件的数组元素
-    public func filter(includeElement: (Element) -> Bool) -> [Element] {
-        var items:[Element] = []
-        for item in self where includeElement(item) {
-            items.append(item)
-        }
-        return items
-    }
-    
-    // 利用闭包功能 给数组添加 查找首个符合条件元素下标 的 方法
-    public func indexOf(includeElement: (Element) -> Bool) -> Int {
-        for var i:Int = 0; i<count; i++ {
-            if includeElement(self[i]) {
-                return i
-            }
-        }
-        return NSNotFound
-    }
-//    // 利用闭包功能 给数组添加 包涵方法
-//    public func contains(includeElement: (Element) -> Bool) -> Bool {
-//        for item in self where includeElement(item) {
-//            return true
-//        }
-//        return false
-//    }
-    
-
-}
-*/
