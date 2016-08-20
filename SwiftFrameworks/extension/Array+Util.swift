@@ -42,17 +42,24 @@ extension CollectionType {
      *      print(i, item)
      *  }
      */
-    public var indexItems:AnyGenerator<(Int, Generator.Element)> {
-        var i = 0
-        var generator = generate()
-        return AnyGenerator {
-            if let next = generator.next() {
-                defer { i += 1 }
-                return (i, next)
-            }
-            return nil
-        }
-    }
+//    public var indexItems:AnyGenerator<(Int, Generator.Element)> {
+//        var i = 0
+//        var generator = generate()
+//        return AnyGenerator {
+//            if let next = generator.next() {
+//                defer { i += 1 }
+//                return (i, next)
+//            }
+//            return nil
+//        }
+//    }
+    
+    /*
+     *  系统中本来就有 例如:
+     *  for (i, item) in array.enumerate() {
+     *      print(i, item)
+     *  }
+     */
     
     public func set<T:Hashable>(@noescape includeElement:(Generator.Element) -> T) -> Set<T> {
         var set = Set<T>()
