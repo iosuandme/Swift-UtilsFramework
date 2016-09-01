@@ -241,7 +241,11 @@ extension NSAttributedString {
                         ], range: range)
                 case let .IMG(src, alt) :
                     if let fileWrapper = imageFactory?(imageURL: src) {
+                    #if os (iOS)
                         let attachment = NSImageAttachment()//NSTextAttachment()
+                    #elseif os (OSX)
+                        let attachment = NSTextAttachment()
+                    #endif
                         attachment.fileWrapper = fileWrapper
                         attrString.replaceCharactersInRange(range, withAttributedString: NSAttributedString(attachment: attachment))
                         NSAttributedStringHTML.HTMLElement.changeElementOffset(1, withLoacaton: range.location, inElements: &elements)
