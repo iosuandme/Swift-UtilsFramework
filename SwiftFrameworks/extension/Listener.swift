@@ -21,9 +21,7 @@ public class Listener<T> {
     public func addNotificationBy(target target:AnyObject, callback:(T)->Void) {
         notifications.append(Notification<T>(target, callback))
         if let item:T = onInitNotification?() {
-            NSOperationQueue.mainQueue().addOperationWithBlock {
-                callback(item)
-            }
+            callback(item)
         }
     }
     public func addNotificationBy(target target:NSObject, callback:Selector) {
