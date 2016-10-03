@@ -18,12 +18,12 @@ import Foundation
 //    }
 //}
 extension Int {
-    func times(@noescape function: (Int) -> Void) {
+    func times(_ function: (Int) -> Void) {
         for i in 0 ..< self { function(i) }
     }
 }
 
-extension CollectionType {
+extension Collection {
     
     // 用指定分隔符 连接 数组元素 为 字符串
 //    public func componentsJoinedByString(separator:String, includeElement:(Generator.Element) -> String = { "\($0)" }) -> String {
@@ -61,17 +61,17 @@ extension CollectionType {
      *  }
      */
     
-    public func set<T:Hashable>(@noescape includeElement:(Generator.Element) -> T) -> Set<T> {
+    public func set<T:Hashable>(_ includeElement: (Iterator.Element) -> T) -> Set<T> {
         var set = Set<T>()
-        for item:Self.Generator.Element in self {
+        for item:Self.Iterator.Element in self {
             set.insert(includeElement(item))
         }
         return set
     }
     
-    public func joined(separator separator:String, includeElement:(Generator.Element) -> String = { "\($0)" }) -> String {
+    public func joined(separator:String, includeElement:(Iterator.Element) -> String = { "\($0)" }) -> String {
         var result:String = ""
-        for item:Self.Generator.Element in self {
+        for item:Self.Iterator.Element in self {
             if !result.isEmpty { result += separator }
             result += includeElement(item)
         }
@@ -79,7 +79,7 @@ extension CollectionType {
     }
     
     // 利用闭包功能 给数组添加 查找首个符合条件元素 的 方法
-    public func find(includeElement: (Self.Generator.Element) -> Bool) -> Self.Generator.Element? {
+    public func find(_ includeElement: (Self.Iterator.Element) -> Bool) -> Self.Iterator.Element? {
         for item in self where includeElement(item) {
             return item
         }

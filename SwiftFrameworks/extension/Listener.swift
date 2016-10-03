@@ -10,46 +10,38 @@
 
 import Foundation
 
-public class Listener<T> {
+open class Listener<T> {
     
-    private var notifications:[Notification<T>] = []
+    fileprivate var notifications:[Notification<T>] = []
     
-    public var count:Int { return notifications.count }
+    open var count:Int { return notifications.count }
     
     
     /// callback mast use `[unowned self]` or `[weak self]` before `(params) in {`
-    public func addNotificationBy(target target:AnyObject, callback:(T)->Void) {
+    open func addNotificationBy(target:AnyObject, callback:@escaping (T)->Void) {
         notifications.append(Notification<T>(target, callback))
         if let item:T = onInitNotification?() {
             callback(item)
         }
     }
-    public func addNotificationBy(target target:NSObject, callback:Selector) {
+    open func addNotificationBy(target:NSObject, callback:Selector) {
         notifications.append(Notification<T>(target, callback))
         if let item:T = onInitNotification?() {
-            NSOperationQueue.mainQueue().addOperationWithBlock {
-                if let obj = item as? AnyObject {
-                    target.performSelector(callback, withObject: obj)
-                } else {
-                    target.performSelector(callback)
-                }
+            OperationQueue.main.addOperation {
+                target.perform(callback, with: item)
             }
         }
     }
     
-    public func dispatchChanged(item:T) {
-        NSOperationQueue.mainQueue().addOperationWithBlock {
-            for i in (0..<self.notifications.count).reverse() {
+    open func dispatchChanged(_ item:T) {
+        OperationQueue.main.addOperation {
+            for i in (0..<self.notifications.count).reversed() {
                 let notification = self.notifications[i]
                 if notification.target === nil {
-                    self.notifications.removeAtIndex(i)
+                    self.notifications.remove(at: i)
                 } else if let selector = notification.selector {
                     let target = notification.target as! NSObject
-                    if let obj = item as? AnyObject {
-                        target.performSelector(selector, withObject: obj)
-                    } else {
-                        target.performSelector(selector)
-                    }
+                    target.perform(selector, with: item)
                 } else {
                     notification.callback(item)
                 }
@@ -57,15 +49,15 @@ public class Listener<T> {
         }
     }
     
-    public func removeNotificationBy(target target:AnyObject) {
-        for i in (0..<notifications.count).reverse() {
+    open func removeNotificationBy(target:AnyObject) {
+        for i in (0..<notifications.count).reversed() {
             if notifications[i].target === target {
-                notifications.removeAtIndex(i)
+                notifications.remove(at: i)
             }
         }
     }
     
-    private var onInitNotification:(()->T)?
+    fileprivate var onInitNotification:(()->T)?
     init(onInitNotification:(()->T)? = nil) {
         self.onInitNotification = onInitNotification
     }
@@ -75,12 +67,12 @@ public class Listener<T> {
 
 private class Notification<T> {
     
-    private weak var target:AnyObject?
+    fileprivate weak var target:AnyObject?
     
-    private var callback:(T)->Void
-    private var selector:Selector?
+    fileprivate var callback:(T)->Void
+    fileprivate var selector:Selector?
     
-    init(_ target:AnyObject, _ callback:(T)->Void) {
+    init(_ target:AnyObject, _ callback:@escaping (T)->Void) {
         self.target = target
         self.callback = callback
     }

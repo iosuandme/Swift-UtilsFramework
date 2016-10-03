@@ -10,9 +10,9 @@ extension String {
     
     
 //    // create a static method to get a swift class for a string name
-    public static func swiftClassFromString(className: String) -> AnyClass! {
+    public static func swiftClassFromString(_ className: String) -> AnyClass! {
         // get the project name
-        if  let appName: String = NSBundle.mainBundle().objectForInfoDictionaryKey("CFBundleName") as? String {
+        if  let appName: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String {
             // generate the full name of your class (take a look into your "YourProject-swift.h" file)
             let classStringName = "_TtC\(appName.utf16.count)\(appName)\(className.length)\(className)"
             // return the class!
@@ -21,11 +21,11 @@ extension String {
         return nil
     }
     // MARK: - 取类型名
-    public static func typeNameFromClass(aClass:AnyClass) -> String {
-        let name = NSStringFromClass(aClass)
-        let demangleName = _stdlib_demangleName(name)
-        return demangleName.componentsSeparatedByString(".").last!
-    }
+//    public static func typeNameFromClass(_ aClass:AnyClass) -> String {
+//        let name = NSStringFromClass(aClass)
+//        let demangleName = _stdlib_demangleName(name)
+//        return demangleName.components(separatedBy: ".").last!
+//    }
     
 //    public init(_ items: Any...) {
 //        let string = items.map({ "\($0)" }).joinWithSeparator(", ")
@@ -64,61 +64,61 @@ extension String {
     #endif
     // MARK: - 取路径末尾文件名
     public var stringByDeletingPathPrefix:String {
-        return self.componentsSeparatedByString("/").last!
+        return self.components(separatedBy: "/").last!
     }
     // MARK: - 长度
     public var length:Int {
-        return self.startIndex.distanceTo(endIndex) //distance(startIndex, endIndex)
+        return self.characters.distance(from: self.startIndex, to: endIndex) //distance(startIndex, endIndex)
     }
     
     // MARK: - 字符串截取
-    public func substringToIndex(index:Int) -> String {
-        return self.substringToIndex(self.startIndex.advancedBy(index)) // advance(self.startIndex, index))
+    public func substringToIndex(_ index:Int) -> String {
+        return self.substring(to: self.characters.index(self.startIndex, offsetBy: index)) // advance(self.startIndex, index))
     }
-    public func substringFromIndex(index:Int) -> String {
-        return self.substringFromIndex(self.startIndex.advancedBy(index)) //advance(self.startIndex, index))
+    public func substringFromIndex(_ index:Int) -> String {
+        return self.substring(from: self.characters.index(self.startIndex, offsetBy: index)) //advance(self.startIndex, index))
     }
-    public func substringWithRange(range:Range<Int>) -> String {
-        let start = startIndex.advancedBy(range.startIndex) //advance(self.startIndex, range.startIndex)
-        let end = startIndex.advancedBy(range.endIndex) //advance(self.startIndex, range.endIndex)
-        return self.substringWithRange(start..<end)
+    public func substringWithRange(_ range:Range<Int>) -> String {
+        let start = characters.index(startIndex, offsetBy: range.lowerBound) //advance(self.startIndex, range.startIndex)
+        let end = characters.index(startIndex, offsetBy: range.upperBound) //advance(self.startIndex, range.endIndex)
+        return self.substring(with: start..<end)
     }
     
     public subscript(index:Int) -> Character{
-        return self[self.startIndex.advancedBy(index)] //advance(self.startIndex, index)]
+        return self[self.characters.index(self.startIndex, offsetBy: index)] //advance(self.startIndex, index)]
     }
     
     public subscript(subRange:Range<Int>) -> String {
-        return self[self.startIndex.advancedBy(subRange.startIndex)..<self.startIndex.advancedBy(subRange.endIndex)]
+        return self[self.characters.index(self.startIndex, offsetBy: subRange.lowerBound)..<self.characters.index(self.startIndex, offsetBy: subRange.upperBound)]
     }
     
     // MARK: - 字符串修改 RangeReplaceableCollectionType
-    public mutating func insert(newElement: Character, atIndex i: Int) {
-        insert(newElement, atIndex: startIndex.advancedBy(i)) //advance(self.startIndex,i))
+    public mutating func insert(_ newElement: Character, atIndex i: Int) {
+        insert(newElement, at: index(startIndex, offsetBy: i)) //advance(self.startIndex,i))
     }
     
-    public mutating func replaceRange(subRange: Range<Int>, with newValues: String) {
-        let start = startIndex.advancedBy(subRange.startIndex) //advance(self.startIndex, range.startIndex)
-        let end = startIndex.advancedBy(subRange.endIndex) //advance(self.startIndex, range.endIndex)
-        replaceRange(start..<end, with: newValues)
+    public mutating func replaceRange(_ subRange: Range<Int>, with newValues: String) {
+        let start = index(startIndex, offsetBy: subRange.lowerBound) //advance(self.startIndex, range.startIndex)
+        let end = index(startIndex, offsetBy: subRange.upperBound) //advance(self.startIndex, range.endIndex)
+        replaceSubrange(start..<end, with: newValues)
     }
     
-    public mutating func removeAtIndex(i: Int) -> Character {
-        return removeAtIndex(startIndex.advancedBy(i)) //advance(self.startIndex,i))
+    public mutating func removeAtIndex(_ i: Int) -> Character {
+        return remove(at: index(startIndex, offsetBy: i)) //advance(self.startIndex,i))
     }
     
-    public mutating func removeRange(subRange: Range<Int>) {
-        let start = startIndex.advancedBy(subRange.startIndex) //advance(self.startIndex, range.startIndex)
-        let end = startIndex.advancedBy(subRange.endIndex) //advance(self.startIndex, range.endIndex)
-        removeRange(start..<end)
+    public mutating func removeRange(_ subRange: Range<Int>) {
+        let start = index(startIndex, offsetBy: subRange.lowerBound) //advance(self.startIndex, range.startIndex)
+        let end = index(startIndex, offsetBy: subRange.upperBound) //advance(self.startIndex, range.endIndex)
+        removeSubrange(start..<end)
     }
     
     // MARK: - 字符串拆分
-    public func splitByString(separator: String) -> [String] {
-        return self.componentsSeparatedByString(separator)
+    public func splitByString(_ separator: String) -> [String] {
+        return self.components(separatedBy: separator)
     }
-    public func splitByCharacters(separators: String) -> [String] {
-        return self.componentsSeparatedByCharactersInSet(NSCharacterSet(charactersInString: separators))
+    public func splitByCharacters(_ separators: String) -> [String] {
+        return self.components(separatedBy: CharacterSet(charactersIn: separators))
     }
     
     // MARK: - URL解码/编码
@@ -127,20 +127,20 @@ extension String {
     public func decodeURL() -> String! {
         //let str:NSString = self
         //return str.stringByReplacingPercentEscapesUsingEncoding(NSUTF8StringEncoding)
-        return self.stringByRemovingPercentEncoding
+        return removingPercentEncoding
     }
     
     /// 给URL编码
     public func encodeURL() -> String {
-        let originalString:CFStringRef = self as NSString
-        let charactersToBeEscaped = "!*'();:@&=+$,/?%#[]" as CFStringRef  //":/?&=;+!@#$()',*"    //转意符号
+        let originalString:CFString = self as NSString
+        let charactersToBeEscaped = "!*'();:@&=+$,/?%#[]" as CFString  //":/?&=;+!@#$()',*"    //转意符号
         //let charactersToLeaveUnescaped = "[]." as CFStringRef  //保留的符号
         let result =
         CFURLCreateStringByAddingPercentEscapes(kCFAllocatorDefault,
             originalString,
             nil,    //charactersToLeaveUnescaped,
             charactersToBeEscaped,
-            CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding)) as NSString
+            CFStringConvertNSStringEncodingToEncoding(String.Encoding.utf8.rawValue)) as NSString
         
         return result as String
     }
@@ -149,7 +149,7 @@ extension String {
 
 extension String.UnicodeScalarView {
     public subscript (i: Int) -> UnicodeScalar {
-        return self[startIndex.advancedBy(i)] //advance(self.startIndex, i)]
+        return self[index(startIndex, offsetBy: i)] //advance(self.startIndex, i)]
     }
 }
 
@@ -157,17 +157,17 @@ extension String.UnicodeScalarView {
 /// trim 去掉字符串两段的换行与空格
 extension String {
     public enum TrimMode : Int {
-        case Both
-        case Prefix
-        case Suffix
+        case both
+        case prefix
+        case suffix
     }
     
-    public func trim(mode:TrimMode = .Both) -> String {
+    public func trim(_ mode:TrimMode = .both) -> String {
         var start:Int = 0
         switch mode {
-        case .Both:
-            return self.trim(.Prefix).trim(.Suffix)
-        case .Prefix:
+        case .both:
+            return self.trim(.prefix).trim(.suffix)
+        case .prefix:
             for char:Character in characters {
                 switch char {
                 case " ", "\n", "\r", "\r\n", "\t":   // \r\n 是一个字符  \n\r 是2个字符
@@ -176,8 +176,8 @@ extension String {
                     return substringFromIndex(start)
                 }
             }
-        case .Suffix:
-            let chars = characters.reverse()
+        case .suffix:
+            let chars = characters.reversed()
             for char:Character in chars {
                 switch char {
                 case " ", "\n", "\r", "\r\n", "\t":   // \r\n 是一个字符  \n\r 是2个字符
@@ -190,21 +190,21 @@ extension String {
         return ""
     }
     
-    public func joinIn(prefix:String, _ suffix:String) -> String {
+    public func joinIn(_ prefix:String, _ suffix:String) -> String {
         return "\(prefix)\(self)\(suffix)"
     }
     
     public var isNumeric:Bool {
-        return matchRegular(try! NSRegularExpression(pattern: "[0-9]+\\.?[0-9]*", options: NSRegularExpressionOptions.CaseInsensitive))
+        return matchRegular(try! NSRegularExpression(pattern: "[0-9]+\\.?[0-9]*", options: NSRegularExpression.Options.caseInsensitive))
     }
     
     public var isInteger:Bool {
-        return matchRegular(try! NSRegularExpression(pattern: "[0-9]+", options: NSRegularExpressionOptions.CaseInsensitive))
+        return matchRegular(try! NSRegularExpression(pattern: "[0-9]+", options: NSRegularExpression.Options.caseInsensitive))
     }
     
-    public func matchRegular(regular:NSRegularExpression) -> Bool {
-        let length = startIndex.distanceTo(endIndex) //characters.count
-        let range = regular.rangeOfFirstMatchInString(self, options: NSMatchingOptions(rawValue: 0), range: NSMakeRange(0, length))
+    public func matchRegular(_ regular:NSRegularExpression) -> Bool {
+        let length = characters.distance(from: startIndex, to: endIndex) //characters.count
+        let range = regular.rangeOfFirstMatch(in: self, options: NSRegularExpression.MatchingOptions(rawValue: 0), range: NSMakeRange(0, length))
         return range.location == 0 && range.length == length
     }
 }
